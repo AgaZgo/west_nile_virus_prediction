@@ -1,10 +1,17 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_selection import SequentialFeatureSelector
+from typing import Tuple
 
 import pandas as pd
 
 
-def split_date(df):
+def split_date(df: pd.DataFrame):
+    """Splits 'Date' column into seperate columns for
+    month, year, week, day of a year
+
+    Args:
+        df (pd.DataFrame): data frame
+    """
     df['Date'] = pd.to_datetime(df['Date'])
     df['Month'] = df['Date'].dt.month
     df['Year'] = df['Date'].dt.year
@@ -12,7 +19,16 @@ def split_date(df):
     df['Dayofyear'] = df['Date'].dt.dayofyear
 
 
-def filter_and_encode_species(df):
+def filter_and_encode_species(df: pd.DataFrame):
+    """Removes rows with species for which test results never came back
+    positive (virus never present). Encodes species by integers
+
+    Args:
+        df (pd.DataFrame): dataframe with columns "Species" and 'WnvPresent'
+
+    Returns:
+        pd.DataFrame: dataframe with species tested positive for wnv
+    """
     virus_per_species = df.groupby('Species')['WnvPresent'].sum()
     positive_species = virus_per_species[virus_per_species > 0].index.to_list()
     species2index = {s: i for i, s in enumerate(positive_species)}
@@ -20,25 +36,77 @@ def filter_and_encode_species(df):
     return df.dropna()
 
 
-def filter_months(df):
+def filter_months(df: pd.DataFrame):
+    """Removes rows with months for which number of positive tests was
+    less than 3.
+
+    Args:
+        df (pd.DataFrame): dataframe with columns "Month" and 'WnvPresent
+
+    Returns:
+        pd.DataFrame: dataframe trimmed to months
+            with significant risk of virus presence
+    """
     virus_per_month = df.groupby('Month')['WnvPresent'].sum()
     positive_months = virus_per_month[virus_per_month > 2].index
     df = df[df['Month'].isin(positive_months)]
     return df
 
 
-def filter_traps(df):
+def filter_traps(df: pd.DataFrame):
+    """Removes rows with traps which never caught infected mosquito.
+
+    Args:
+        df (pd.DataFrame): dataframe with columns 'Trap' and 'WnvPresent'
+
+    Returns:
+        pd.DataFrame: dataframe with traps in which infected mosquitos 
+            were caught
+    """
     virus_per_trap = df.groupby('Trap')['WnvPresent'].sum()
     positive_traps = virus_per_trap[virus_per_trap > 0].index
     df = df[df['Trap'].isin(positive_traps)]
     return df
 
 
-def add_lag_window_to_column_name(df, lag, window):
+def add_lag_window_to_column_name(
+    df: pd.DataFrame,
+    lag: int,
+    window: int
+) -> list:
+    """Extends column names of a dataframe by appending number of lagged days 
+    and aggregation window
+
+    Args:
+        df (pd.DataFrame): dataframe with column names to be updated
+        lag (int): number of lagged days
+        window (int): window for aggregation function
+
+    Returns:
+        list: updated column names
+    """
     df.columns = ['_'.join([c, f'mean_l{lag}_w{window}']) for c in df.columns]
 
 
-def aggregate_columns_with_lag(df, lag_range, window_range, agg_func):
+def aggregate_columns_with_lag(
+    df: pd.DataFrame,
+    lag_range: Tuple[3],
+    window_range: Tuple[3],
+    agg_func: str
+) -> pd.DataFrame:
+    """Performs an aggregation with moving window with lagging of all columns
+    in a dataframe. Aggregation is made for each combination of lag and window 
+    size within lag and window range.
+
+    Args:
+        df (pd.DataFrame): dataframe with columns to aggregate
+        lag_range (Tuple[3]): minimal lag, maximal lag, step
+        window_range (Tuple[3]): minimal window, maximal window, step
+        agg_func (str): aggregation function
+
+    Returns:
+        pd.DataFrame: dataframe of aggregated and lagged columns
+    """
     df_agg = pd.DataFrame(index=df.index)
     for lag in range(lag_range[0], lag_range[1], lag_range[2]):
         for window in range(window_range[0], window_range[1], window_range[2]):
