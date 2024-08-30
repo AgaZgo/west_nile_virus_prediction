@@ -37,8 +37,7 @@ def filter_and_encode_species(df: pd.DataFrame):
 
 
 def filter_months(df: pd.DataFrame):
-    """Removes rows with months for which number of positive tests was
-    less than 3.
+    """Removes rows with months with number of positive tests less than 3.
 
     Args:
         df (pd.DataFrame): dataframe with columns "Month" and 'WnvPresent
@@ -74,8 +73,8 @@ def add_lag_window_to_column_name(
     lag: int,
     window: int
 ) -> list:
-    """Extends column names of a dataframe by appending number of lagged days 
-    and aggregation window
+    """Extends column names of a dataframe by appending number of lagged days
+    and size of aggregation window
 
     Args:
         df (pd.DataFrame): dataframe with column names to be updated
@@ -94,8 +93,8 @@ def aggregate_columns_with_lag(
     window_range: Tuple[3],
     agg_func: str
 ) -> pd.DataFrame:
-    """Performs an aggregation with moving window with lagging of all columns
-    in a dataframe. Aggregation is made for each combination of lag and window 
+    """Performs an aggregation with moving window with lagging for all columns
+    in a dataframe. Aggregation is made for each combination of lag and window
     size within lag and window range.
 
     Args:
