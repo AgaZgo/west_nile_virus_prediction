@@ -19,7 +19,7 @@ def split_date(df: pd.DataFrame):
     df['Dayofyear'] = df['Date'].dt.dayofyear
 
 
-def filter_and_encode_species(df: pd.DataFrame):
+def filter_and_encode_species(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
     """Removes rows with species for which test results never came back
     positive (virus never present). Encodes species by integers
 
@@ -28,15 +28,16 @@ def filter_and_encode_species(df: pd.DataFrame):
 
     Returns:
         pd.DataFrame: dataframe with species tested positive for wnv
+        dict: species to index
     """
     virus_per_species = df.groupby('Species')['WnvPresent'].sum()
     positive_species = virus_per_species[virus_per_species > 0].index.to_list()
     species2index = {s: i for i, s in enumerate(positive_species)}
     df['Species'] = df['Species'].map(species2index)
-    return df.dropna()
+    return df.dropna(), species2index
 
 
-def filter_months(df: pd.DataFrame):
+def filter_months(df: pd.DataFrame) -> pd.DataFrame:
     """Removes rows with months with number of positive tests less than 3.
 
     Args:
@@ -52,7 +53,7 @@ def filter_months(df: pd.DataFrame):
     return df
 
 
-def filter_traps(df: pd.DataFrame):
+def filter_traps(df: pd.DataFrame) -> pd.DataFrame:
     """Removes rows with traps which never caught infected mosquito.
 
     Args:
@@ -72,7 +73,7 @@ def add_lag_window_to_column_name(
     df: pd.DataFrame,
     lag: int,
     window: int
-) -> list:
+):
     """Extends column names of a dataframe by appending number of lagged days
     and size of aggregation window
 
@@ -80,17 +81,14 @@ def add_lag_window_to_column_name(
         df (pd.DataFrame): dataframe with column names to be updated
         lag (int): number of lagged days
         window (int): window for aggregation function
-
-    Returns:
-        list: updated column names
     """
     df.columns = ['_'.join([c, f'mean_l{lag}_w{window}']) for c in df.columns]
 
 
 def aggregate_columns_with_lag(
     df: pd.DataFrame,
-    lag_range: Tuple[3],
-    window_range: Tuple[3],
+    lag_range: Tuple[int, int, int],
+    window_range: Tuple[int, int, int],
     agg_func: str
 ) -> pd.DataFrame:
     """Performs an aggregation with moving window with lagging for all columns
