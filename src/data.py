@@ -56,7 +56,8 @@ class RowFilterTransformer(BaseEstimator, TransformerMixin):
 
 
 def select_columns(df: pd.DataFrame) -> pd.DataFrame:
-    columns = ['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Dayofyear', 'Week', 'Month', 'Year']
+    columns = ['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Dayofyear',
+               'Week', 'Month', 'Year']
 
     if 'WnvPresent' in df.columns:
         columns.append('WnvPresent')
