@@ -1,5 +1,7 @@
-data
-models
 .venv
 .env
+data
+models
+cache
 src/__pycache__
+notebooks/cache

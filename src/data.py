@@ -1,11 +1,12 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.base import BaseEstimator, TransformerMixin
 from typing import Tuple
 
 import pandas as pd
 
 
-def split_date(df: pd.DataFrame):
+def split_date(df: pd.DataFrame) -> pd.DataFrame:
     """Splits 'Date' column into seperate columns for
     month, year, week, day of a year
 
@@ -17,56 +18,52 @@ def split_date(df: pd.DataFrame):
     df['Year'] = df['Date'].dt.year
     df['Week'] = df.Date.dt.isocalendar().week
     df['Dayofyear'] = df['Date'].dt.dayofyear
-
-
-def filter_and_encode_species(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
-    """Removes rows with species for which test results never came back
-    positive (virus never present). Encodes species by integers
-
-    Args:
-        df (pd.DataFrame): dataframe with columns "Species" and 'WnvPresent'
-
-    Returns:
-        pd.DataFrame: dataframe with species tested positive for wnv
-        dict: species to index
-    """
-    virus_per_species = df.groupby('Species')['WnvPresent'].sum()
-    positive_species = virus_per_species[virus_per_species > 0].index.to_list()
-    species2index = {s: i for i, s in enumerate(positive_species)}
-    df['Species'] = df['Species'].map(species2index)
-    return df.dropna(), species2index
-
-
-def filter_months(df: pd.DataFrame) -> pd.DataFrame:
-    """Removes rows with months with number of positive tests less than 3.
-
-    Args:
-        df (pd.DataFrame): dataframe with columns "Month" and 'WnvPresent
-
-    Returns:
-        pd.DataFrame: dataframe trimmed to months
-            with significant risk of virus presence
-    """
-    virus_per_month = df.groupby('Month')['WnvPresent'].sum()
-    positive_months = virus_per_month[virus_per_month > 2].index
-    df = df[df['Month'].isin(positive_months)]
     return df
 
 
-def filter_traps(df: pd.DataFrame) -> pd.DataFrame:
-    """Removes rows with traps which never caught infected mosquito.
+class RowFilterTransformer(BaseEstimator, TransformerMixin):
+    """Transformer to drop rows with months, species and traps for which
+    wnv presence was detected less than 3 times"""
 
-    Args:
-        df (pd.DataFrame): dataframe with columns 'Trap' and 'WnvPresent'
+    def __init__(self, columns=['Species', 'Month', 'Trap']):
 
-    Returns:
-        pd.DataFrame: dataframe with traps in which infected mosquitos 
-            were caught
-    """
-    virus_per_trap = df.groupby('Trap')['WnvPresent'].sum()
-    positive_traps = virus_per_trap[virus_per_trap > 0].index
-    df = df[df['Trap'].isin(positive_traps)]
-    return df
+        self.columns = columns
+        self.positive = dict()
+        self.species2index = None
+
+    def fit(self, df: pd.DataFrame):
+
+        for col in self.columns:
+            virus_detected_cnt = df.groupby(col)['WnvPresent'].sum()
+            self.positive[col] = virus_detected_cnt[
+                virus_detected_cnt > 2
+            ].index.to_list()
+
+        self.species2index = {
+            s: i for i, s in enumerate(self.positive['Species'])
+        }
+
+        return self
+
+    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+
+        for col in self.columns:
+            df = df[df[col].isin(self.positive[col])]
+
+        df.loc[:, 'Species'] = df['Species'].map(self.species2index)
+
+        return df
+
+
+def select_columns(df: pd.DataFrame) -> pd.DataFrame:
+    columns = ['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Dayofyear', 'Week', 'Month', 'Year']
+
+    if 'WnvPresent' in df.columns:
+        columns.append('WnvPresent')
+    else:
+        columns.append('Id')
+
+    return df[columns]
 
 
 def add_lag_window_to_column_name(
