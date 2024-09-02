@@ -1,7 +1,8 @@
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.base import BaseEstimator, TransformerMixin
 from typing import Tuple
+from xgboost import XGBClassifier
 
 import pandas as pd
 
@@ -112,12 +113,14 @@ def aggregate_columns_with_lag(
 
 
 def select_features(features, labels, num_features, model_type):
-    if model_type == 'lin_regr':
-        classifier = LinearRegression()
-        sfs_forward = SequentialFeatureSelector(
-            classifier,
-            n_features_to_select=num_features,
-            direction='forward',
-            n_jobs=-1
-        ).fit(features, labels)
+    if model_type == 'log_regr':
+        classifier = LogisticRegression()  #data must be scaled
+    elif model_type == 'xgb':
+        classifier = XGBClassifier()
+    sfs_forward = SequentialFeatureSelector(
+        classifier,
+        n_features_to_select=num_features,
+        direction='forward',
+        n_jobs=-1
+    ).fit(features, labels)
     return sfs_forward
