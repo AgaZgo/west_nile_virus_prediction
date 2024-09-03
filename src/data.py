@@ -1,6 +1,7 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import OneHotEncoder
 from typing import Tuple
 from xgboost import XGBClassifier
 
@@ -30,7 +31,6 @@ class RowFilterTransformer(BaseEstimator, TransformerMixin):
 
         self.columns = columns
         self.positive = dict()
-        self.species2index = None
 
     def fit(self, df: pd.DataFrame):
 
@@ -40,10 +40,6 @@ class RowFilterTransformer(BaseEstimator, TransformerMixin):
                 virus_detected_cnt > 2
             ].index.to_list()
 
-        self.species2index = {
-            s: i for i, s in enumerate(self.positive['Species'])
-        }
-
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -51,21 +47,41 @@ class RowFilterTransformer(BaseEstimator, TransformerMixin):
         for col in self.columns:
             df = df[df[col].isin(self.positive[col])]
 
-        df.loc[:, 'Species'] = df['Species'].map(self.species2index)
-
         return df
 
 
+class SpeciesEncoder(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self.enc = None
+
+    def fit(self, df: pd.DataFrame):
+        self.enc = OneHotEncoder(sparse_output=False)
+        self.enc.fit(df['Species'].to_frame())
+
+        return self
+
+    def transform(self, df: pd.DataFrame):
+        df_species = pd.DataFrame(
+            self.enc.transform(df['Species'].to_frame()),
+            columns=self.enc.get_feature_names_out()
+        )
+        return pd.concat(
+            [
+                df.reset_index(drop=True).drop(['Species'], axis=1),
+                df_species
+            ],
+            axis=1
+        )
+
+
 def select_columns(df: pd.DataFrame) -> pd.DataFrame:
-    columns = ['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Dayofyear',
-               'Week', 'Month', 'Year']
+    columns_to_drop = ['Address', 'Block', 'Street', 'AddressNumberAndStreet',
+                       'AddressAccuracy']
 
-    if 'WnvPresent' in df.columns:
-        columns.append('WnvPresent')
-    else:
-        columns.append('Id')
+    if 'NumMosquitos' in df.columns:
+        columns_to_drop.append('NumMosquitos')
 
-    return df[columns]
+    return df.drop(columns_to_drop, axis=1)
 
 
 def add_lag_window_to_column_name(
