@@ -36,5 +36,3 @@ data_test = data_preprocessing_pipeline.transform(data_test)
 
 data_train.to_pickle(PREPROCESSED_DATA_DIR / 'preprocessed_train.pkl')
 data_test.to_pickle(PREPROCESSED_DATA_DIR / 'preprocessed_test.pkl')
-
-print(data_train.shape[0], data_test.shape[0])

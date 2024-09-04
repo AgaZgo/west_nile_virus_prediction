@@ -130,7 +130,7 @@ def aggregate_columns_with_lag(
 
 def select_features(features, labels, num_features, model_type):
     if model_type == 'log_regr':
-        classifier = LogisticRegression()  #data must be scaled
+        classifier = LogisticRegression()  # data must be scaled
     elif model_type == 'xgb':
         classifier = XGBClassifier()
     sfs_forward = SequentialFeatureSelector(
@@ -140,3 +140,73 @@ def select_features(features, labels, num_features, model_type):
         n_jobs=-1
     ).fit(features, labels)
     return sfs_forward
+
+
+def select_weather_features(
+    df: pd.DataFrame,
+    df_weather: pd.DataFrame,
+    num_features: int,
+    selector: str
+) -> list:
+
+    df = pd.merge(df, df_weather.reset_index(), on='Date')
+    X_train = df[df_weather.columns]
+    y_train = df['WnvPresent']
+    sfs_forward = select_features(X_train, y_train, num_features, selector)
+
+    return df_weather.columns[sfs_forward.get_support()].to_list()
+
+
+class FeatureSelector(BaseEstimator, TransformerMixin):
+    def __init__(
+        self,
+        weather: pd.DataFrame,
+        agg_weather: pd.DataFrame,
+        num_weather_features: int,
+        num_agg_features: int,
+        selector: str
+    ):
+        self.weather = weather
+        self.agg_weather = agg_weather
+        self.num_weather_features = num_weather_features
+        self.num_agg_features = num_agg_features
+        self.selector = selector
+
+        self.selected_weather_cols = None
+        self.selected_agg_cols = None
+
+    def fit(
+        self,
+        df: pd.DataFrame
+    ):
+
+        self.selected_weather_cols = select_weather_features(
+            df,
+            self.weather,
+            self.num_weather_features,
+            self.selector
+        )
+
+        self.selected_agg_cols = select_weather_features(
+            df,
+            self.agg_weather,
+            self.num_agg_features,
+            self.selector
+        )
+        return self
+
+    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        data_full = pd.merge(
+            pd.merge(df, self.weather.reset_index(), on='Date'),
+            self.agg_weather.reset_index(),
+            on='Date'
+        )
+        df = data_full[
+            [
+                *df.columns.to_list(),
+                *self.selected_weather_cols,
+                *self.selected_agg_cols
+            ]
+        ]
+        df.drop(['Date', 'Month', 'Year', 'Trap'], axis=1, inplace=True)
+        return df
