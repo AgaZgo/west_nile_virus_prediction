@@ -30,6 +30,7 @@ feature_selector = FeatureSelector(
     NUM_AGG_FEATURES,
     SELECTOR
 )
+print(f"Data train shape: {data_train.shape}")
 data_train = feature_selector.fit_transform(data_train)
 data_test = feature_selector.transform(df_test)
 

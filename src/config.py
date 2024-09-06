@@ -4,9 +4,9 @@ RANDOM_SEED = 42
 LAG_RANGE = (1, 14, 3)
 WINDOW_RANGE = (1, 11, 3)
 NUM_WEATHER_FEATURES = 5    # number of weather features to select
-NUM_AGG_FEATURES = 5    # number of aggregated weather features to select
-NUM_FEATURES = 20   # total number of features to select
-SELECTOR = 'xgb'  # 'no feature scaling required' classifier
+NUM_AGG_FEATURES = 1    # number of aggregated weather features to select
+NUM_FEATURES = 10   # total number of features to select
+SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
-UNDERSAMPLE = True  # undersampling negative class
+UNDERSAMPLE = False  # undersampling negative class

@@ -209,5 +209,5 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
                 *self.selected_agg_cols
             ]
         ]
-        df.drop(['Date', 'Month', 'Year', 'Trap'], axis=1, inplace=True)
+        df.drop(['Date', 'Month', 'Trap'], axis=1, inplace=True)
         return df
