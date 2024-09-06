@@ -119,6 +119,7 @@ def aggregate_columns_with_lag(
     Returns:
         pd.DataFrame: dataframe of aggregated and lagged columns
     """
+    df.set_index('Date', inplace=True)
     df_agg = pd.DataFrame(index=df.index)
     for lag in range(lag_range[0], lag_range[1], lag_range[2]):
         for window in range(window_range[0], window_range[1], window_range[2]):
