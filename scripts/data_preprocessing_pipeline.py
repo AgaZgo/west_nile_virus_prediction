@@ -4,8 +4,8 @@ from sklearn.pipeline import Pipeline, make_pipeline
 import pandas as pd
 
 from src.paths import RAW_DATA_DIR, PREPROCESSED_DATA_DIR
-from src.data import RowFilterTransformer, SpeciesEncoder
-from src.data import split_date, select_columns
+from src.data import MonthSpeciesTrapTransformer, SpeciesEncoder
+from src.data import split_date, remove_address
 
 
 data_train = pd.read_csv(RAW_DATA_DIR / 'train.csv')
@@ -15,15 +15,15 @@ data_test = pd.read_csv(RAW_DATA_DIR / 'test.csv')
 def build_data_preprocessing_pipeline() -> Pipeline:
 
     date_transformer = FunctionTransformer(split_date)
-    row_filter_transformer = RowFilterTransformer()
+    month_species_trap_filter = MonthSpeciesTrapTransformer()
     species_encoder = SpeciesEncoder()
-    cols_selector = FunctionTransformer(select_columns)
+    address_remover = FunctionTransformer(remove_address)
 
     return make_pipeline(
         date_transformer,
-        row_filter_transformer,
+        month_species_trap_filter,
         species_encoder,
-        cols_selector,
+        address_remover,
         memory='cache',
         verbose=True
     )

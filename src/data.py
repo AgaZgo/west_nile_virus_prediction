@@ -23,7 +23,7 @@ def split_date(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-class RowFilterTransformer(BaseEstimator, TransformerMixin):
+class MonthSpeciesTrapTransformer(BaseEstimator, TransformerMixin):
     """Transformer to drop rows with months, species and traps for which
     wnv presence was detected less than 3 times"""
 
@@ -74,7 +74,7 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
         )
 
 
-def select_columns(df: pd.DataFrame) -> pd.DataFrame:
+def remove_address(df: pd.DataFrame) -> pd.DataFrame:
     columns_to_drop = ['Address', 'Block', 'Street', 'AddressNumberAndStreet',
                        'AddressAccuracy']
 
