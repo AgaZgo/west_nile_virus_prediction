@@ -161,11 +161,15 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
                 *self.selected_agg_cols
             ]
         ]
-        df.drop(['Date', 'Month', 'Trap'], axis=1, inplace=True)
+        # df.drop(['Date', 'Month', 'Trap'], axis=1, inplace=True)
         return df
 
 
 def get_features(data: dict) -> Tuple[pd.DataFrame]:
+
+    species_oh_encoder = SpeciesEncoder()
+    data['train'] = species_oh_encoder.fit_transform(data['train'])
+    data['test'] = species_oh_encoder.transform(data['test'])
 
     df_agg = aggregate_columns_with_lag(
         data['weather'],

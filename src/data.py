@@ -157,7 +157,7 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
 
 
 def remove_address(df: pd.DataFrame) -> pd.DataFrame:
-    
+ 
     columns_to_drop = ['Address', 'Block', 'Street', 'AddressNumberAndStreet',
                        'AddressAccuracy']
 

@@ -20,6 +20,7 @@ ray = {extras = ["tune"], version = "^2.35.0"}
 ipywidgets = "^8.1.5"
 optuna = "^4.0.0"
 pudb = "^2024.1.2"
+loguru = "^0.7.2"
 
 
 [tool.poetry.group.dev.dependencies]
