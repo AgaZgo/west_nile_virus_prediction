@@ -4,18 +4,10 @@ from sklearn.model_selection import cross_validate
 from sklearn.model_selection import RepeatedStratifiedKFold
 
 import pandas as pd
-import pickle
 import optuna
 
-from src.paths import MODEL_DIR
-from src.config import RANDOM_SEED, UNDERSAMPLE
-
-
-def random_undersample(df: pd.DataFrame) -> pd.DataFrame:
-    df_0 = df[df.WnvPresent == 0].groupby(
-        ['Trap', 'Year', 'Month']).sample(frac=0.15, random_state=RANDOM_SEED)
-    df_1 = df[df.WnvPresent == 1]
-    return pd.concat([df_0, df_1])
+from src.resampling import random_undersample, near_miss
+from src.config import UNDERSAMPLE
 
 
 def get_training_data(
@@ -23,15 +15,18 @@ def get_training_data(
     method: str
 ) -> pd.DataFrame:
 
+    labels = df_train.pop('WnvPresent')
+    features = df_train.drop(['Date', 'Month', 'Trap'], axis=1)
+
     if method == 'random_undersample':
-        df_train = random_undersample(df_train)
+        features, labels = random_undersample(features, labels)
+    elif method == 'nearmiss':
+        features, labels = near_miss(features, labels)
 
-    df_train.drop(['Date', 'Month', 'Trap'], axis=1, inplace=True)
-
-    return df_train
+    return features, labels
 
 
-def objective(trial, df_train, labels):
+def objective(trial, features, labels):
 
     model = trial.suggest_categorical('model', ['lgbm', 'xgb'])
     if model == 'lgbm':
@@ -61,11 +56,11 @@ def objective(trial, df_train, labels):
         }
         clf = XGBClassifier(**params)
     cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3)
-    res = cross_validate(clf, df_train, labels, scoring='roc_auc', cv=cv)
+    res = cross_validate(clf, features, labels, scoring='roc_auc', cv=cv)
     return res['test_score'].mean()
 
 
-def train_best(best_params, data_train, labels):
+def train_best(best_params, features, labels):
     model = best_params.pop('model', None)
 
     if model == 'lgbm':
@@ -73,18 +68,20 @@ def train_best(best_params, data_train, labels):
     else:
         clf = XGBClassifier(**best_params)
 
-    clf.fit(data_train, labels)
+    clf.fit(features, labels)
 
     return clf
 
 
-def train(df_train):
-    labels = df_train.pop('WnvPresent')
+def train(
+    features: pd.DataFrame,
+    labels: pd.Series
+):
     study = optuna.create_study(direction='maximize')
     study.optimize(
-        lambda trial: objective(trial, df_train, labels),
+        lambda trial: objective(trial, features, labels),
         n_trials=4
     )
 
-    best_model = train_best(study.best_params, df_train, labels)
+    best_model = train_best(study.best_params, features, labels)
     return best_model

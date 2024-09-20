@@ -4,8 +4,8 @@ import subprocess
 from src.paths import RAW_DATA_DIR, SUBMISSION_DIR
 
 
-def evaluate(model, df_train, df_test):
-    df_test = df_test[df_train.columns.to_list() + ['Id']]
+def evaluate(model, df_test, feature_names):
+    df_test = df_test[feature_names + ['Id']]
     predictions = model.predict_proba(df_test.drop(['Id'], axis=1))[:, 1]
     df_test['proba'] = predictions
 

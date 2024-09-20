@@ -61,11 +61,11 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
     missing_index = df_weather[df_weather.WetBulb == 'M'].index
     df_weather.loc[missing_index, 'WetBulb'] = y_pred.round()
 
-    df_weather.WetBulb = df_weather.WetBulb.astype(float)
+    df_weather['WetBulb'] = df_weather.WetBulb.astype('float')
 
-    df_weather.PrecipTotal = df_weather.PrecipTotal.str.strip(
+    df_weather['PrecipTotal'] = df_weather.PrecipTotal.str.strip(
         ).str.replace('T', '0.001').str.replace('M', '0.001').astype('float')
-    df_weather.Date = pd.to_datetime(df_weather.Date)
+    df_weather.loc[:, 'Date'] = pd.to_datetime(df_weather.Date)
 
     weather_st1 = df_weather[df_weather.Station == 1].drop('Station', axis=1)
     weather_st2 = df_weather[df_weather.Station == 2].drop('Station', axis=1)
@@ -157,7 +157,7 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
 
 
 def remove_address(df: pd.DataFrame) -> pd.DataFrame:
- 
+
     columns_to_drop = ['Address', 'Block', 'Street', 'AddressNumberAndStreet',
                        'AddressAccuracy']
 

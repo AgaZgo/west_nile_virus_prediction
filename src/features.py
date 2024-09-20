@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 import pandas as pd
 
 from src.config import LAG_RANGE, WINDOW_RANGE
-from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, SELECTOR
+from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
 
 
 class SpeciesEncoder(BaseEstimator, TransformerMixin):
@@ -183,7 +183,7 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
         df_agg,
         NUM_WEATHER_FEATURES,
         NUM_AGG_FEATURES,
-        SELECTOR
+        FEATURE_SELECTOR
     )
 
     df_train = feature_selector.fit_transform(data['train'])
