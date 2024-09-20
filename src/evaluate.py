@@ -1,3 +1,4 @@
+from time import sleep
 import pandas as pd
 import subprocess
 
@@ -19,14 +20,13 @@ def evaluate(model, df_test, feature_names):
     results.to_csv(SUBMISSION_DIR / 'test_results.csv', index=False)
 
     subprocess.run(
-        [
-            "kaggle", "competitions", "submit", "-c",
-            "predict-west-nile-virus", "-f",
-            "/home/aga/repos/west_nile_virus/data/submission/test_results.csv",
-            "-m", "test"
-        ],
-        shell=True
+        "kaggle competitions submit -c predict-west-nile-virus -f /home/aga/repos/west_nile_virus/data/submission/test_results.csv -m test",
+        shell=True,
+        executable="/bin/bash"
     )
+
+    sleep(1)
+
     s = subprocess.check_output(
             "kaggle competitions submissions -c predict-west-nile-virus",
             text=True,
@@ -35,4 +35,6 @@ def evaluate(model, df_test, feature_names):
 
     public_score = s.split('\n')[3].split()[-2]
     private_score = s.split('\n')[3].split()[-1]
-    print(f"Public score: {public_score}\nPrivate score: {private_score}")
+    print(f"\nPublic score: {public_score}\nPrivate score: {private_score}")
+
+    return public_score, private_score

@@ -6,7 +6,7 @@ from sklearn.model_selection import RepeatedStratifiedKFold
 import pandas as pd
 import optuna
 
-from src.resampling import random_undersample, near_miss
+from src.resampling import random_undersample, resample
 from src.config import UNDERSAMPLE
 
 
@@ -15,13 +15,17 @@ def get_training_data(
     method: str
 ) -> pd.DataFrame:
 
-    labels = df_train.pop('WnvPresent')
-    features = df_train.drop(['Date', 'Month', 'Trap'], axis=1)
-
     if method == 'random_undersample':
-        features, labels = random_undersample(features, labels)
-    elif method == 'nearmiss':
-        features, labels = near_miss(features, labels)
+        df_train = random_undersample(df_train)
+
+        labels = df_train.pop('WnvPresent')
+        features = df_train.drop(['Date', 'Month', 'Trap'], axis=1)
+
+    else:
+        labels = df_train.pop('WnvPresent')
+        features = df_train.drop(['Date', 'Month', 'Trap'], axis=1)
+
+        features, labels = resample(features, labels, method)
 
     return features, labels
 
@@ -80,7 +84,7 @@ def train(
     study = optuna.create_study(direction='maximize')
     study.optimize(
         lambda trial: objective(trial, features, labels),
-        n_trials=4
+        n_trials=40
     )
 
     best_model = train_best(study.best_params, features, labels)

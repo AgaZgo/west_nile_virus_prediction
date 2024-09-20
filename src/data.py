@@ -41,7 +41,7 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
         df_weather.Tavg == 'M',
         df_weather[['Tmax', 'Tmin']].mean(axis=1),
         df_weather.Tavg
-    ).astype('int')
+    ).astype(np.float64)
 
     lr = LinearRegression()
 
@@ -51,7 +51,7 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
     test_weather = df_weather[df_weather.WetBulb == 'M'][
         ['Tmax', 'Tmin', 'DewPoint']
     ]
-    y_train = train_weather.pop('WetBulb').astype(float)
+    y_train = train_weather.pop('WetBulb').astype(np.float64)
     X_train = train_weather
     X_test = test_weather
 
@@ -61,10 +61,10 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
     missing_index = df_weather[df_weather.WetBulb == 'M'].index
     df_weather.loc[missing_index, 'WetBulb'] = y_pred.round()
 
-    df_weather['WetBulb'] = df_weather.WetBulb.astype('float')
+    df_weather['WetBulb'] = df_weather.WetBulb.astype(np.float64)
 
     df_weather['PrecipTotal'] = df_weather.PrecipTotal.str.strip(
-        ).str.replace('T', '0.001').str.replace('M', '0.001').astype('float')
+        ).str.replace('T', '0.001').str.replace('M', '0.001').astype(np.float64)
     df_weather.loc[:, 'Date'] = pd.to_datetime(df_weather.Date)
 
     weather_st1 = df_weather[df_weather.Station == 1].drop('Station', axis=1)
