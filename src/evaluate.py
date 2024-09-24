@@ -1,5 +1,7 @@
 from typing import Tuple
 from time import sleep
+from loguru import logger
+
 import pandas as pd
 import subprocess
 
@@ -50,6 +52,7 @@ def evaluate(
         shell=True,
         executable="/bin/bash"
     )
+    logger.debug('File pushed to Kaggle API')
 
     sleep(1)
 
