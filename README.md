@@ -29,10 +29,8 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 ## TODO:
 
-- [ ] max_catch_date
-- [ ] disable pandas future warnings
-- [ ] logging
-- [ ] experiment tracking
 - [ ] hyperparameters to config
+- [ ] experiment tracking
+- [ ] max_catch_date
  
 

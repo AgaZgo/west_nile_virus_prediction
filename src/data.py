@@ -8,6 +8,9 @@ import numpy as np
 
 from src.paths import RAW_DATA_DIR
 
+# disable pandas SettingWithCopyWarnings
+pd.options.mode.chained_assignment = None
+
 
 def read_raw_data() -> dict:
     """Reads 3 csv files with data on virus presence and weather conditions
