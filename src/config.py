@@ -9,5 +9,6 @@ NUM_FEATURES = 10   # total number of features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
-UNDERSAMPLE = False  # undersampling negative class
+RESAMPLE = True  # undersampling negative class
 RESAMPLE_METHOD = 'SMOTETomek'
+N_TRIALS = 1

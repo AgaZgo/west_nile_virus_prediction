@@ -200,8 +200,4 @@ def remove_address(df: pd.DataFrame) -> pd.DataFrame:
     columns_to_drop = ['Address', 'Block', 'Street', 'AddressNumberAndStreet',
                        'AddressAccuracy']
 
-    # TODO: this should be done somewhere else
-    if 'NumMosquitos' in df.columns:
-        columns_to_drop.append('NumMosquitos')
-
     return df.drop(columns_to_drop, axis=1)

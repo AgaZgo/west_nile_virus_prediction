@@ -12,7 +12,7 @@ import numpy as np
 from src.config import RANDOM_SEED
 
 
-def random_undersample(df: pd.DataFrame) -> pd.DataFrame:
+def stratified_undersample(df: pd.DataFrame) -> pd.DataFrame:
     df_0 = df[df.WnvPresent == 0].groupby(
         ['Trap', 'Year', 'Month']).sample(frac=0.15, random_state=RANDOM_SEED)
     df_1 = df[df.WnvPresent == 1]
@@ -24,8 +24,18 @@ def resample(
     labels: pd.DataFrame,
     method: str
 ) -> Tuple[pd.DataFrame, pd.Series]:
+    """Applies resampling to imbalanced training and returns balanced data
 
-    # undersampling methods
+    Args:
+        features (pd.DataFrame): Dataframe with features
+        labels (pd.DataFrame): Series with labels
+        method (str): Resampling method
+
+    Returns:
+        Tuple[pd.DataFrame, pd.Series]: Balanced features and labels
+    """
+
+    # choose undersampling method
     if method == 'NearMiss':
         resample = NearMiss(version=1, n_neighbors=3)
     elif method == "TomekLinks":
@@ -37,12 +47,12 @@ def resample(
     elif method == "NeighbourhoodCleaningRule":
         resample = NeighbourhoodCleaningRule(
             n_neighbors=3, threshold_cleaning=0.5)
-    # oversampling methods
+    # or oversampling method
     elif method == 'SMOTE':
         resample = SMOTE()
     elif method == 'ADASYN':
         resample = ADASYN()
-    # combined methods
+    # or combined method
     elif method == 'SMOTETomek':
         resample = SMOTETomek()
     elif method == 'SMOTEENN':

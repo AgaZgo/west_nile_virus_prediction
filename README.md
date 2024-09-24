@@ -2,6 +2,13 @@
 
 Machine Learning project for predicting West Nile Virus outbreaks from imbalanced data.
 
+The aim of the project is to build virus presence predictor for mosquitos caught in Chicago. 
+
+The focus is on investigating what resampling technique leads to the best results. 
+
+Moreover, we perform extensive feature engineering of weather data to finds out what weather condition and in what time range are the most helpul for predicting probability of virus presence.
+
+
 ## Resampling techniques
 
 ### I. Undersampling
@@ -24,5 +31,8 @@ Machine Learning project for predicting West Nile Virus outbreaks from imbalance
 
 - [ ] max_catch_date
 - [ ] disable pandas future warnings
+- [ ] logging
+- [ ] experiment tracking
+- [ ] hyperparameters to config
  
 
