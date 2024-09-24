@@ -1,6 +1,7 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SequentialFeatureSelector
 from xgboost import XGBClassifier
+from loguru import logger
 
 import pandas as pd
 
@@ -37,17 +38,26 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         """
 
         # select non-aggregated and non-lagged weather features
+        logger.debug(
+            'Selecting non-aggregated and non-lagged weather features...'
+        )
         self.selected_weather_cols = self.select_weather_features(
             df,
             self.weather_df,
             self.num_weather_features
         )
+        logger.debug('Non-aggregated weather features selected')
+        
         # select aggregated and lagged weather features
+        logger.debug(
+            'Selecting aggregated and lagged weather features...'
+        )
         self.selected_agg_cols = self.select_weather_features(
             df,
             self.agg_weather_df,
             self.num_agg_features
         )
+        logger.debug('Aggregated and lagged weather features selected')
 
         return self
 
@@ -95,6 +105,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         if self.selector == 'xgb':
             classifier = XGBClassifier()
 
+        logger.debug(f'Sequentially selecting {num_features} features..')
         sfs_forward = SequentialFeatureSelector(
             classifier,
             n_features_to_select=num_features,

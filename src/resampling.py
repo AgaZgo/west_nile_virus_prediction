@@ -1,4 +1,5 @@
 from typing import Tuple
+from loguru import logger
 from imblearn.under_sampling import (
     NearMiss, TomekLinks, EditedNearestNeighbours,
     OneSidedSelection, NeighbourhoodCleaningRule
@@ -58,6 +59,7 @@ def resample(
     elif method == 'SMOTEENN':
         resample = SMOTEENN()
 
+    logger.debug(f'Resampling data using: {method}')
     features, labels = resample.fit_resample(
         features.astype(np.float64),
         labels.astype(np.float64)

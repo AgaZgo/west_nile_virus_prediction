@@ -1,6 +1,7 @@
 from typing import Tuple
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import OneHotEncoder
+from loguru import logger
 
 import pandas as pd
 
@@ -96,17 +97,21 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     """
 
     # encode 'Species'
+    logger.debug('Encoding species...')
     species_oh_encoder = SpeciesEncoder()
     data['train'] = species_oh_encoder.fit_transform(data['train'])
     data['test'] = species_oh_encoder.transform(data['test'])
+    logger.info('Species encoded')
 
     # get aggregated and lagged weather features
+    logger.debug('Aggregating weather with lag...')
     df_agg = aggregate_columns_with_lag(
         data['weather'],
         lag_range=LAG_RANGE,
         window_range=WINDOW_RANGE,
         agg_func='mean'
     )
+    logger.info('Weather aggregated and lagged.')
 
     # build feature selector
     feature_selector = FeatureSelector(
@@ -120,5 +125,6 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     # select features from train and test data
     df_train = feature_selector.fit_transform(data['train'])
     df_test = feature_selector.transform(data['test'])
-
+    logger.info(
+        f'Features selection finished with {df_train.columns.to_list()}')
     return df_train, df_test

@@ -1,4 +1,5 @@
 from typing import Tuple
+from loguru import logger
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import cross_validate
@@ -42,6 +43,9 @@ def get_training_data(
             axis=1
         )
         features, labels = resample(features, labels, method)
+
+    logger.debug(f'Resampled data ratio: \
+        {int(labels.sum())}:{int(labels.shape[0]-labels.sum())}')
 
     return features, labels
 
@@ -131,6 +135,8 @@ def train_best_model(
         clf = XGBClassifier(**best_params)
 
     clf.fit(features, labels)
+
+    logger.info('Best model fitted.')
 
     return clf
 
