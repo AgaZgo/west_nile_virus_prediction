@@ -19,3 +19,10 @@ Machine Learning project for predicting West Nile Virus outbreaks from imbalance
 1. SMOTE + Tomek Links
 2. SMOTE + Edited Nearest Neighbours
 
+
+## TODO:
+
+- [ ] max_catch_date
+- [ ] disable pandas future warnings
+ 
+
