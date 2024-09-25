@@ -1,14 +1,24 @@
-RANDOM_SEED = 42
-
 # feature engineering config
-LAG_RANGE = (1, 2, 3)
-WINDOW_RANGE = (3, 4, 3)
+LAG_LIST = [1, 3, 7, 14]
+WINDOW_LIST = [3, 7, 10]
 NUM_WEATHER_FEATURES = 5    # number of weather features to select
 NUM_AGG_FEATURES = 5    # number of aggregated weather features to select
-NUM_FEATURES = 10   # total number of features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
-RESAMPLE = True  # undersampling negative class
+
+# Choose resampling method from:
+# ['NearMiss', 'TomekLinks', 'EditedNearestNeighbours', 'OneSidedSelection',
+#  'NeighbourhoodCleaningRule', 'SMOTE', 'ADASYN', 'SMOTETomek', 'SMOTEENN']
 RESAMPLE_METHOD = 'SMOTETomek'
-N_TRIALS = 1
+
+MODEL = 'lgbm'
+N_TRIALS = 40
+MAX_DEPTH = (2, 10)
+MIN_CHILD_WEIGHT = [1, 3, 5]
+SUBSAMPLE = (0.5, 1.0)
+LEARNING_RATE = (1e-4, 10)
+LAMBDA = (0.01, 10)
+
+MLFLOW_URI = "http://127.0.0.1:8090"
+EXPERIMENT_NAME = "West Nile Virus"

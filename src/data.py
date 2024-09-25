@@ -48,7 +48,7 @@ def build_data_preprocessing_pipeline() -> Pipeline:
         date_transformer,
         month_species_trap_filter,
         address_remover,
-        memory='cache',
+        # memory='cache',
         verbose=True
     )
 
@@ -161,6 +161,7 @@ def split_date(df: pd.DataFrame) -> pd.DataFrame:
     df['Year'] = df['Date'].dt.year
     df['Week'] = df.Date.dt.isocalendar().week
     df['Dayofyear'] = df['Date'].dt.dayofyear
+    df['Dayofweek'] = df['Date'].dt.dayofweek
 
     return df
 

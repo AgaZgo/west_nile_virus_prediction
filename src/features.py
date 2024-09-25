@@ -1,11 +1,11 @@
-from typing import Tuple
+from typing import List, Tuple
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import OneHotEncoder
 from loguru import logger
 
 import pandas as pd
 
-from src.config import LAG_RANGE, WINDOW_RANGE
+from src.config import LAG_LIST, WINDOW_LIST
 from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
 from src.feature_selector import FeatureSelector
 
@@ -54,8 +54,8 @@ def add_lag_window_to_column_name(
 
 def aggregate_columns_with_lag(
     df: pd.DataFrame,
-    lag_range: Tuple[int, int, int],
-    window_range: Tuple[int, int, int],
+    lags: List[int],
+    windows: List[int],
     agg_func: str
 ) -> pd.DataFrame:
     """Performs an aggregation with moving window with lagging for all columns
@@ -64,8 +64,8 @@ def aggregate_columns_with_lag(
 
     Args:
         df (pd.DataFrame): dataframe with columns to aggregate
-        lag_range (Tuple[3]): minimal lag, maximal lag, step
-        window_range (Tuple[3]): minimal window, maximal window, step
+        lags (List[int]): list of lag sizes to apply
+        windows (List[int]): list of window sizes to apply
         agg_func (str): aggregation function
 
     Returns:
@@ -73,8 +73,8 @@ def aggregate_columns_with_lag(
     """
     df.set_index('Date', inplace=True)
     df_agg = pd.DataFrame(index=df.index)
-    for lag in range(lag_range[0], lag_range[1], lag_range[2]):
-        for window in range(window_range[0], window_range[1], window_range[2]):
+    for lag in lags:
+        for window in windows:
             df_one = df.shift(lag).rolling(window).agg(agg_func)
             add_lag_window_to_column_name(df_one, lag, window)
             df_agg = pd.concat([df_agg, df_one], axis=1).dropna()
@@ -107,8 +107,8 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     logger.debug('Aggregating weather with lag...')
     df_agg = aggregate_columns_with_lag(
         data['weather'],
-        lag_range=LAG_RANGE,
-        window_range=WINDOW_RANGE,
+        lags=LAG_LIST,
+        windows=WINDOW_LIST,
         agg_func='mean'
     )
     logger.info('Weather aggregated and lagged.')
@@ -125,6 +125,5 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     # select features from train and test data
     df_train = feature_selector.fit_transform(data['train'])
     df_test = feature_selector.transform(data['test'])
-    logger.info(
-        f'Features selection finished with {df_train.columns.to_list()}')
+    logger.info('Features selection finished.')
     return df_train, df_test

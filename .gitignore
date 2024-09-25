@@ -8,3 +8,5 @@ cache
 src/__pycache__
 notebooks/cache
 rubbish
+mlruns
+mlartifacts

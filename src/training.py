@@ -11,10 +11,14 @@ import optuna
 import mlflow
 
 from src.resampling import stratified_undersample, resample
-from src.config import RESAMPLE, N_TRIALS
+from src.config import (
+    MODEL, N_TRIALS, MLFLOW_URI, EXPERIMENT_NAME,
+    MAX_DEPTH, MIN_CHILD_WEIGHT, SUBSAMPLE,
+    LEARNING_RATE, LAMBDA
+)
 
 
-mlflow.set_tracking_uri(uri="http://127.0.0.1:8090")
+mlflow.set_tracking_uri(uri=MLFLOW_URI)
 
 
 def get_training_data(
@@ -32,26 +36,23 @@ def get_training_data(
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training
                                         a model
     """
+    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos', 'MaxCatchDate',
+                       'Year', 'Dayofyear', 'Dayofweek']
 
     if method == 'stratified_undersample':
         df_train = stratified_undersample(df_train)
 
         labels = df_train.pop('WnvPresent')
-        features = df_train.drop(
-            ['Date', 'Month', 'Trap', 'NumMosquitos'],
-            axis=1
-        )
+        features = df_train.drop(columns_to_drop, axis=1)
     else:
         labels = df_train.pop('WnvPresent')
-        features = df_train.drop(
-            ['Date', 'Month', 'Trap', 'NumMosquitos'],
-            axis=1
-        )
+        features = df_train.drop(columns_to_drop, axis=1)
         features, labels = resample(features, labels, method)
 
     logger.debug(f'Resampled data ratio: \
         {int(labels.sum())}:{int(labels.shape[0]-labels.sum())}')
 
+    logger.debug(f"Training with features {features.columns.to_list()}")
     return features, labels
 
 
@@ -72,36 +73,33 @@ def tune_objective(
         float: Mean roc_auc test score from cv folds
     """
 
-    # choose model
-    model = trial.suggest_categorical('model', ['lgbm', 'xgb'])
-
     # choose model's hyperparameters
-    if model == 'lgbm':
+    if MODEL == 'lgbm':
         params = {
-            'max_depth': trial.suggest_int('max_depth', 2, 10),
+            'max_depth': trial.suggest_int(
+                'max_depth', MAX_DEPTH[0], MAX_DEPTH[1]),
             "min_child_weight": trial.suggest_categorical(
-                'min_child_weight',
-                [1, 3, 5]
-            ),
-            "subsample": trial.suggest_float('subsample', 0.5, 1.0),
+                'min_child_weight', MIN_CHILD_WEIGHT),
+            "subsample": trial.suggest_float(
+                'subsample', SUBSAMPLE[0], SUBSAMPLE[1]),
             "learning_rate": trial.suggest_float(
-                'learning_rate', 1e-4, 10, log=True
-            ),
-            "reg_lambda": trial.suggest_float('reg_lambda', 0.01, 10),
-            "scale_pos_weight": 1 if RESAMPLE else 9
+                'learning_rate', LEARNING_RATE[0], LEARNING_RATE[1], log=True),
+            "reg_lambda": trial.suggest_float(
+                'reg_lambda', LAMBDA[0], LAMBDA[1])
         }
         clf = LGBMClassifier(**params, verbose=-1)
     else:
         params = {
-            'max_depth': trial.suggest_int('max_depth', 2, 10),
+            'max_depth': trial.suggest_int(
+                'max_depth', MAX_DEPTH[0], MAX_DEPTH[1]),
             "min_child_weight": trial.suggest_categorical(
-                'min_child_weight',
-                [1, 3, 5]
-            ),
-            "subsample": trial.suggest_float('subsample', 0.5, 1.0),
-            "eta": trial.suggest_float('eta', 1e-4, 10, log=True),
-            "lambda": trial.suggest_float('lambda', 0.01, 10),
-            "scale_pos_weight": 1 if RESAMPLE else 9
+                'min_child_weight', MIN_CHILD_WEIGHT),
+            "subsample": trial.suggest_float(
+                'subsample', SUBSAMPLE[0], SUBSAMPLE[1]),
+            "eta": trial.suggest_float(
+                'eta', LEARNING_RATE[0], LEARNING_RATE[1], log=True),
+            "lambda": trial.suggest_float(
+                'lambda', LAMBDA[0], LAMBDA[1])
         }
         clf = XGBClassifier(**params)
 
@@ -126,7 +124,7 @@ def train_best_model(
 
     Args:
         study (optuna.study.study.Study): optuna Study object containing tuning
-                                          expirement results including 
+                                          expirement results including
                                           'best_params' and 'best_value'
                                           i.e. parameters for best found model
                                           and scoting metric it achieved
@@ -136,16 +134,14 @@ def train_best_model(
     Returns:
         Trained model compatible with sklearn API
     """
-    mlflow.set_experiment("MLflow Quickstart")
+    mlflow.set_experiment(EXPERIMENT_NAME)
 
     best_params = study.best_params.copy()
     best_score = study.best_value
 
-    model = best_params.pop('model', None)
-
-    if model == 'lgbm':
+    if MODEL == 'lgbm':
         clf = LGBMClassifier(**best_params)
-    elif model == 'xgb':
+    elif MODEL == 'xgb':
         clf = XGBClassifier(**best_params)
 
     clf.fit(features, labels)
@@ -161,7 +157,7 @@ def train_best_model(
     # Set a tag that we can use to remind ourselves what this run was for
     mlflow.set_tag(
         "Training Info",
-        f"Basic {model} model for WNV prediction"
+        f"Basic {MODEL} model for WNV prediction"
     )
 
     signature = infer_signature(features,

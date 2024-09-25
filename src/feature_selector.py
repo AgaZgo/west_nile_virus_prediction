@@ -1,9 +1,12 @@
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.feature_selection import RFE
 from xgboost import XGBClassifier
+
+from datetime import timedelta
 from loguru import logger
 
 import pandas as pd
+import numpy as np
 
 
 class FeatureSelector(BaseEstimator, TransformerMixin):
@@ -47,7 +50,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
             self.num_weather_features
         )
         logger.debug('Non-aggregated weather features selected')
-        
+
         # select aggregated and lagged weather features
         logger.debug(
             'Selecting aggregated and lagged weather features...'
@@ -65,11 +68,18 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         """Returns input dataframe merged (on 'Date' column) with selected
         weather features
         """
+        df = self.add_max_catch_date(df)
 
         data_full = pd.merge(
-            pd.merge(df, self.weather_df.reset_index(), on='Date'),
+            pd.merge(
+                df,
+                self.weather_df.reset_index(),
+                left_on='MaxCatchDate',
+                right_on='Date'
+            ),
             self.agg_weather_df.reset_index(),
-            on='Date'
+            left_on='MaxCatchDate',
+            right_on='Date'
         )
         df = data_full[
             [
@@ -87,7 +97,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         weather_df: pd.DataFrame,
         num_features: int
     ) -> list:
-        """
+        """Selects best weather features according to specified selector model
 
         Args:
             df (pd.DataFrame): Dataframe with virus presence data
@@ -105,12 +115,39 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         if self.selector == 'xgb':
             classifier = XGBClassifier()
 
-        logger.debug(f'Sequentially selecting {num_features} features..')
-        sfs_forward = SequentialFeatureSelector(
+        logger.debug(f'Selecting {num_features} features with RFE...')
+
+        selector = RFE(
             classifier,
-            n_features_to_select=num_features,
-            direction='forward',
-            n_jobs=-1
+            n_features_to_select=num_features
         ).fit(X_train, y_train)
 
-        return weather_df.columns[sfs_forward.get_support()].to_list()
+        support = selector.support_
+        selected_features = weather_df.columns[support].to_list()
+        logger.debug(f'Selected weather features: {selected_features}')
+        return selected_features
+
+    def add_max_catch_date(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adds 'MaxCatchDate' columns based on 'Date'. For Mondays, Tuesdays
+        and Wednesdays 'MaxCatchDate'='Date'. For Thursdays and Fridays
+        'MaxCatchDate' is the date of Wednesday the same week.
+
+        Args:
+            df (pd.DataFrame): Dataframe containing columns 'Date' and
+                               'Dayofweek'
+
+        Returns:
+            pd.DataFrame: Dataframe with 'MaxCatchDate' added
+        """
+
+        df['MaxCatchDate'] = np.where(
+            df.Dayofweek < 3,
+            df.Date,
+            np.where(
+                df.Dayofweek == 3,
+                df.Date - timedelta(days=1),
+                df.Date - timedelta(days=2)
+            )
+        )
+
+        return df

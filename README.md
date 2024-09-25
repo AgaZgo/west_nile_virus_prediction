@@ -6,8 +6,7 @@ The aim of the project is to build virus presence predictor for mosquitos caught
 
 The focus is on investigating what resampling technique leads to the best results. 
 
-Moreover, we perform extensive feature engineering of weather data to finds out what weather condition and in what time range are the most helpul for predicting probability of virus presence.
-
+Moreover, we perform extensive feature engineering of weather data to finds out what weather condition and in what time range are the most helpul for predicting probability of virus presence in a given sample.
 
 ## Resampling techniques
 
@@ -29,8 +28,7 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 ## TODO:
 
-- [ ] hyperparameters to config
-- [ ] experiment tracking
-- [ ] max_catch_date
- 
-
+- [ ] config to mlflow
+- [ ] readme
+- [ ] decouple basic eda and advanced eda
+- [ ] what is loss function in lgbm?
