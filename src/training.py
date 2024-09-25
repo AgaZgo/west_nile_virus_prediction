@@ -4,12 +4,17 @@ from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import RepeatedStratifiedKFold
+from mlflow.models import infer_signature
 
 import pandas as pd
 import optuna
+import mlflow
 
 from src.resampling import stratified_undersample, resample
 from src.config import RESAMPLE, N_TRIALS
+
+
+mlflow.set_tracking_uri(uri="http://127.0.0.1:8090")
 
 
 def get_training_data(
@@ -112,7 +117,7 @@ def tune_objective(
 
 
 def train_best_model(
-    best_params: dict,
+    study: optuna.study.study.Study,
     features: pd.DataFrame,
     labels: pd.Series
 ):
@@ -120,13 +125,22 @@ def train_best_model(
     it on full training dataset
 
     Args:
-        best_params (dict): Dictionary with best parameters chosen by optuna
+        study (optuna.study.study.Study): optuna Study object containing tuning
+                                          expirement results including 
+                                          'best_params' and 'best_value'
+                                          i.e. parameters for best found model
+                                          and scoting metric it achieved
         features (pd.DataFrame): Training features
         labels (pd.Series): Training labels
 
     Returns:
         Trained model compatible with sklearn API
     """
+    mlflow.set_experiment("MLflow Quickstart")
+
+    best_params = study.best_params.copy()
+    best_score = study.best_value
+
     model = best_params.pop('model', None)
 
     if model == 'lgbm':
@@ -135,10 +149,36 @@ def train_best_model(
         clf = XGBClassifier(**best_params)
 
     clf.fit(features, labels)
+    logger.info('Best model fitted. Loading to MLflow...')
 
-    logger.info('Best model fitted.')
+    mlflow.start_run()
+    # Log the hyperparameters
+    mlflow.log_params(best_params)
 
-    return clf
+    # Log the metric
+    mlflow.log_metric("roc_auc_cv", best_score)
+
+    # Set a tag that we can use to remind ourselves what this run was for
+    mlflow.set_tag(
+        "Training Info",
+        f"Basic {model} model for WNV prediction"
+    )
+
+    signature = infer_signature(features,
+                                clf.predict_proba(features)[:, 1])
+
+    model_info = mlflow.sklearn.log_model(
+        sk_model=clf,
+        artifact_path="wnv",
+        signature=signature,
+        input_example=features,
+        registered_model_name="tracking-quickstart",
+    )
+
+    loaded_model = mlflow.sklearn.load_model(model_info.model_uri)
+    logger.info('Model loaded to MLflow')
+
+    return loaded_model
 
 
 def train_with_hyperparams_tuning(
@@ -160,5 +200,5 @@ def train_with_hyperparams_tuning(
         n_trials=N_TRIALS
     )
 
-    best_model = train_best_model(study.best_params, features, labels)
+    best_model = train_best_model(study, features, labels)
     return best_model

@@ -4,6 +4,7 @@ from loguru import logger
 
 import pandas as pd
 import subprocess
+import mlflow
 
 from src.paths import RAW_DATA_DIR, SUBMISSION_DIR
 
@@ -65,5 +66,12 @@ def evaluate(
 
     public_score = s.split('\n')[3].split()[-2]
     private_score = s.split('\n')[3].split()[-1]
+
+    mlflow.log_metric("public_score", public_score)
+    mlflow.log_metric("privare_score", private_score)
+
+    logger.debug('Kaggle scores logged to mlfmlow.')
+
+    mlflow.end_run()
 
     return public_score, private_score
