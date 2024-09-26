@@ -11,9 +11,10 @@ import optuna
 import mlflow
 
 from src.resampling import stratified_undersample, resample
+from src.mlflow_utils import generate_run_name, log_config_to_mlflow
 from src.config import (
     MODEL, N_TRIALS, MLFLOW_URI, EXPERIMENT_NAME,
-    MAX_DEPTH, MIN_CHILD_WEIGHT, SUBSAMPLE,
+    N_ESTIMATORS, MAX_DEPTH, MIN_CHILD_WEIGHT, SUBSAMPLE,
     LEARNING_RATE, LAMBDA
 )
 
@@ -36,12 +37,12 @@ def get_training_data(
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training
                                         a model
     """
-    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos', 'MaxCatchDate',
-                       'Year', 'Dayofyear', 'Dayofweek']
+    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos','Year',
+                       'Dayofyear', 'Dayofweek']
 
     if method == 'stratified_undersample':
         df_train = stratified_undersample(df_train)
-
+        logger.debug('Stratified undersampled training data.')
         labels = df_train.pop('WnvPresent')
         features = df_train.drop(columns_to_drop, axis=1)
     else:
@@ -76,6 +77,8 @@ def tune_objective(
     # choose model's hyperparameters
     if MODEL == 'lgbm':
         params = {
+            'n_estimators': trial.suggest_categorical(
+                'n_estimators', N_ESTIMATORS),
             'max_depth': trial.suggest_int(
                 'max_depth', MAX_DEPTH[0], MAX_DEPTH[1]),
             "min_child_weight": trial.suggest_categorical(
@@ -88,7 +91,7 @@ def tune_objective(
                 'reg_lambda', LAMBDA[0], LAMBDA[1])
         }
         clf = LGBMClassifier(**params, verbose=-1)
-    else:
+    elif MODEL == 'xgb':
         params = {
             'max_depth': trial.suggest_int(
                 'max_depth', MAX_DEPTH[0], MAX_DEPTH[1]),
@@ -147,7 +150,9 @@ def train_best_model(
     clf.fit(features, labels)
     logger.info('Best model fitted. Loading to MLflow...')
 
-    mlflow.start_run()
+    mlflow.start_run(run_name=generate_run_name())
+    log_config_to_mlflow()
+
     # Log the hyperparameters
     mlflow.log_params(best_params)
 
@@ -168,7 +173,7 @@ def train_best_model(
         artifact_path="wnv",
         signature=signature,
         input_example=features,
-        registered_model_name="tracking-quickstart",
+        registered_model_name="LGBM-for-WNV",
     )
 
     loaded_model = mlflow.sklearn.load_model(model_info.model_uri)

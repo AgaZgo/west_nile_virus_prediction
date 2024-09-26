@@ -41,26 +41,28 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         """
 
         # select non-aggregated and non-lagged weather features
-        logger.debug(
-            'Selecting non-aggregated and non-lagged weather features...'
-        )
-        self.selected_weather_cols = self.select_weather_features(
-            df,
-            self.weather_df,
-            self.num_weather_features
-        )
-        logger.debug('Non-aggregated weather features selected')
+        if self.num_weather_features > 0:
+            logger.debug(
+                'Selecting non-aggregated and non-lagged weather features...'
+            )
+            self.selected_weather_cols = self.select_weather_features(
+                df,
+                self.weather_df,
+                self.num_weather_features
+            )
+            logger.debug('Non-aggregated weather features selected')
 
         # select aggregated and lagged weather features
-        logger.debug(
-            'Selecting aggregated and lagged weather features...'
-        )
-        self.selected_agg_cols = self.select_weather_features(
-            df,
-            self.agg_weather_df,
-            self.num_agg_features
-        )
-        logger.debug('Aggregated and lagged weather features selected')
+        if self.num_agg_features > 0:
+            logger.debug(
+                'Selecting aggregated and lagged weather features...'
+            )
+            self.selected_agg_cols = self.select_weather_features(
+                df,
+                self.agg_weather_df,
+                self.num_agg_features
+            )
+            logger.debug('Aggregated and lagged weather features selected')
 
         return self
 
@@ -88,7 +90,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
                 *self.selected_agg_cols
             ]
         ]
-
+        df.drop('MaxCatchDate', axis=1, inplace=True)
         return df
 
     def select_weather_features(

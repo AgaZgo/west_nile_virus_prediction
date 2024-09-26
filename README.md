@@ -28,7 +28,5 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 ## TODO:
 
-- [ ] config to mlflow
 - [ ] readme
 - [ ] decouple basic eda and advanced eda
-- [ ] what is loss function in lgbm?

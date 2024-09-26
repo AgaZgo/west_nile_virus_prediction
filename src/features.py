@@ -125,5 +125,6 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     # select features from train and test data
     df_train = feature_selector.fit_transform(data['train'])
     df_test = feature_selector.transform(data['test'])
+
     logger.info('Features selection finished.')
     return df_train, df_test
