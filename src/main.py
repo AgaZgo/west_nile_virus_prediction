@@ -4,7 +4,6 @@ from src.data import read_raw_data, preprocess_data
 from src.features import get_features
 from src.training import get_training_data, train_with_hyperparams_tuning
 from src.evaluate import evaluate
-from src.config import RESAMPLE_METHOD
 
 
 def run_experiment():
@@ -17,7 +16,7 @@ def run_experiment():
     df_train, df_test = get_features(data)
     logger.info('Feature engineering finished.')
 
-    features, labels = get_training_data(df_train, method=RESAMPLE_METHOD)
+    features, labels = get_training_data(df_train)
     logger.info('Training data created.')
 
     model = train_with_hyperparams_tuning(features, labels)

@@ -7,10 +7,11 @@ from sklearn.model_selection import RepeatedStratifiedKFold
 from mlflow.models import infer_signature
 
 import pandas as pd
+import numpy as np
 import optuna
 import mlflow
 
-from src.resampling import stratified_undersample, resample
+from src.pipeline import get_pipeline
 from src.mlflow_utils import generate_run_name, log_config_to_mlflow
 from src.config import (
     MODEL, N_TRIALS, MLFLOW_URI, EXPERIMENT_NAME,
@@ -23,8 +24,7 @@ mlflow.set_tracking_uri(uri=MLFLOW_URI)
 
 
 def get_training_data(
-    df_train: pd.DataFrame,
-    method: str
+    df_train: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Performs resampling of training data.
     Removes redundant columns
@@ -37,21 +37,12 @@ def get_training_data(
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training
                                         a model
     """
-    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos','Year',
+    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos', 'Year',
                        'Dayofyear', 'Dayofweek']
 
-    if method == 'stratified_undersample':
-        df_train = stratified_undersample(df_train)
-        logger.debug('Stratified undersampled training data.')
-        labels = df_train.pop('WnvPresent')
-        features = df_train.drop(columns_to_drop, axis=1)
-    else:
-        labels = df_train.pop('WnvPresent')
-        features = df_train.drop(columns_to_drop, axis=1)
-        features, labels = resample(features, labels, method)
-
-    logger.debug(f'Resampled data ratio: \
-        {int(labels.sum())}:{int(labels.shape[0]-labels.sum())}')
+    # df_train = df_train[df_train.Year.isin([2009, 2011])]
+    labels = df_train.pop('WnvPresent').astype(np.float64)
+    features = df_train.drop(columns_to_drop, axis=1).astype(np.float64)
 
     logger.debug(f"Training with features {features.columns.to_list()}")
     return features, labels
@@ -106,12 +97,14 @@ def tune_objective(
         }
         clf = XGBClassifier(**params)
 
+    pipeline = get_pipeline(clf=clf)
+
     # create CV folds
     cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3)
 
     # perform cross-validation
     cv_results = cross_validate(
-        clf, features, labels, scoring='roc_auc', cv=cv
+        pipeline, features, labels, scoring='roc_auc', cv=cv
     )
 
     return cv_results['test_score'].mean()
@@ -147,7 +140,9 @@ def train_best_model(
     elif MODEL == 'xgb':
         clf = XGBClassifier(**best_params)
 
-    clf.fit(features, labels)
+    pipeline = get_pipeline(clf=clf)
+
+    pipeline.fit(features, labels)
     logger.info('Best model fitted. Loading to MLflow...')
 
     mlflow.start_run(run_name=generate_run_name())
@@ -169,7 +164,7 @@ def train_best_model(
                                 clf.predict_proba(features)[:, 1])
 
     model_info = mlflow.sklearn.log_model(
-        sk_model=clf,
+        sk_model=pipeline,
         artifact_path="wnv",
         signature=signature,
         input_example=features,

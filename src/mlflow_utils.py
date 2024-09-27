@@ -3,13 +3,13 @@ from datetime import datetime
 import mlflow
 
 from src.config import (
-    RESAMPLE_METHOD, LAG_LIST, WINDOW_LIST, NUM_WEATHER_FEATURES, 
-    NUM_AGG_FEATURES, FEATURE_SELECTOR, MODEL, N_TRIALS
+    LAG_LIST, WINDOW_LIST, NUM_WEATHER_FEATURES, NUM_AGG_FEATURES,
+    FEATURE_SELECTOR, MODEL, N_TRIALS
 )
 
 
 def generate_run_name():
-    return RESAMPLE_METHOD + datetime.now().strftime("_%y%m%d_%H%M%S")
+    return datetime.now().strftime("_%y%m%d_%H%M%S")
 
 
 def log_config_to_mlflow():
@@ -19,7 +19,6 @@ def log_config_to_mlflow():
         'cfg_num_weather_features': NUM_WEATHER_FEATURES,
         'cfg_num_agg_features': NUM_AGG_FEATURES,
         'cfg_feature_selector': FEATURE_SELECTOR,
-        'cfg_resample_method': RESAMPLE_METHOD,
         'cfg_model': MODEL,
         'cfg_n_trails': N_TRIALS
     }

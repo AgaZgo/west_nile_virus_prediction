@@ -48,7 +48,6 @@ def build_data_preprocessing_pipeline() -> Pipeline:
         date_transformer,
         month_species_trap_filter,
         address_remover,
-        # memory='cache',
         verbose=True
     )
 

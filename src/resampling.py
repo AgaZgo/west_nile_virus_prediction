@@ -2,10 +2,11 @@ from typing import Tuple
 from loguru import logger
 from imblearn.under_sampling import (
     NearMiss, TomekLinks, EditedNearestNeighbours,
-    OneSidedSelection, NeighbourhoodCleaningRule
+    OneSidedSelection, NeighbourhoodCleaningRule, RandomUnderSampler
 )
-from imblearn.over_sampling import SMOTE, ADASYN
+from imblearn.over_sampling import SMOTE, ADASYN, BorderlineSMOTE
 from imblearn.combine import SMOTETomek, SMOTEENN
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 import pandas as pd
 import numpy as np
@@ -35,8 +36,8 @@ def resample(
     """
 
     # choose undersampling method
-    if method == 'NearMiss':
-        resample = NearMiss(version=1, n_neighbors=3)
+    if method[:-1] == 'NearMiss':
+        resample = NearMiss(version=int(method[-1]))
     elif method == "TomekLinks":
         resample = TomekLinks()
     elif method == "EditedNearestNeighbours":
@@ -64,3 +65,15 @@ def resample(
     )
 
     return features, labels
+
+
+def resampling_pipeline_steps():
+
+    steps = [
+        ('scale', StandardScaler()),
+        ('smote', BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5)),
+        # ('tomek', TomekLinks()),
+        # ('enn', EditedNearestNeighbours()),
+        ('under', RandomUnderSampler(sampling_strategy=0.5))
+    ]
+    return steps

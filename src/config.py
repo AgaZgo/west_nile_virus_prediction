@@ -1,27 +1,27 @@
 # feature engineering config
-LAG_LIST = [1, 3, 7, 14]
-WINDOW_LIST = [3, 7, 10]
-NUM_WEATHER_FEATURES = 20    # number of weather features to select
-NUM_AGG_FEATURES = 10    # number of aggregated weather features to select
+LAG_LIST = [3, 5, 7, 10, 14, 30]
+WINDOW_LIST = [3, 5]
+NUM_WEATHER_FEATURES = 10   # number of weather features to select (max. 12)
+NUM_AGG_FEATURES = 10   # number of aggregated weather features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
 
 # Choose resampling method from:
-# ['stratified_undersample', 'NearMiss', 'TomekLinks',
-# 'EditedNearestNeighbours', 'OneSidedSelection', 'NeighbourhoodCleaningRule',
-# 'SMOTE', 'ADASYN', 'SMOTETomek', 'SMOTEENN']
-RESAMPLE_METHOD = 'stratified_undersample'
+# ['stratified_undersample', 'NearMiss1', 'NearMiss2', 'NearMiss3',
+# 'TomekLinks', 'EditedNearestNeighbours', 'OneSidedSelection',
+# 'NeighbourhoodCleaningRule', 'SMOTE', 'ADASYN', 'SMOTETomek', 'SMOTEENN']
+# RESAMPLE_METHOD = ''
 
 MODEL = 'lgbm'
-N_TRIALS = 10
+N_TRIALS = 20
 
 # model parameters
-N_ESTIMATORS = [50, 60, 100, 150, 200]
+N_ESTIMATORS = [50, 60, 100, 150, 200, 300]
 MAX_DEPTH = (3, 12)
 MIN_CHILD_WEIGHT = [1, 3, 5, 7]
 SUBSAMPLE = (0.6, 1.0)
-LEARNING_RATE = (1e-2, 0.1)
+LEARNING_RATE = (1e-4, 1)
 LAMBDA = (0.01, 1)
 
 MLFLOW_URI = "http://127.0.0.1:8090"

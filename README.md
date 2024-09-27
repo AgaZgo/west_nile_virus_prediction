@@ -28,5 +28,10 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 ## TODO:
 
+- [ ] merge on 'MaxCatchDate' in .fit()
+- [-] pipeline in RFE fit; pipeline does'nt have feature_importances
+- [x] address imbalanced classes in feature selector
+- [ ] what scoring metric is used by RFE
 - [ ] readme
 - [ ] decouple basic eda and advanced eda
+ 

@@ -8,6 +8,8 @@ from loguru import logger
 import pandas as pd
 import numpy as np
 
+from src.pipeline import get_pipeline
+
 
 class FeatureSelector(BaseEstimator, TransformerMixin):
     """Class to select weather features for modeling"""
@@ -110,13 +112,24 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         Returns:
             list: List of selected weather features
         """
-        df = pd.merge(df, weather_df.reset_index(), on='Date')
+
+        df = self.add_max_catch_date(df)
+        df = pd.merge(
+            df,
+            weather_df.reset_index(),
+            left_on='MaxCatchDate',
+            right_on='Date'
+        )
+        df.drop('MaxCatchDate', axis=1, inplace=True)
         X_train = df[weather_df.columns]
         y_train = df['WnvPresent']
 
         if self.selector == 'xgb':
             classifier = XGBClassifier()
 
+        pipeline = get_pipeline()
+
+        X_train, y_train = pipeline.fit_resample(X_train, y_train)
         logger.debug(f'Selecting {num_features} features with RFE...')
 
         selector = RFE(
