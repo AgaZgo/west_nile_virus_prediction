@@ -2,17 +2,10 @@
 LAG_LIST = [3, 5, 7, 10, 14, 30]
 WINDOW_LIST = [3, 5]
 NUM_WEATHER_FEATURES = 10   # number of weather features to select (max. 12)
-NUM_AGG_FEATURES = 10   # number of aggregated weather features to select
+NUM_AGG_FEATURES = 0   # number of aggregated weather features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
-
-# Choose resampling method from:
-# ['stratified_undersample', 'NearMiss1', 'NearMiss2', 'NearMiss3',
-# 'TomekLinks', 'EditedNearestNeighbours', 'OneSidedSelection',
-# 'NeighbourhoodCleaningRule', 'SMOTE', 'ADASYN', 'SMOTETomek', 'SMOTEENN']
-# RESAMPLE_METHOD = ''
-
 MODEL = 'lgbm'
 N_TRIALS = 20
 
