@@ -12,6 +12,7 @@ import optuna
 import mlflow
 
 from src.pipeline import get_pipeline
+from src.resampling import stratified_undersample
 from src.mlflow_utils import generate_run_name, log_config_to_mlflow
 from src.config import (
     MODEL, N_TRIALS, MLFLOW_URI, EXPERIMENT_NAME,
@@ -37,10 +38,11 @@ def get_training_data(
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training
                                         a model
     """
+    # df_train = stratified_undersample(df_train)
     columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos', 'Year',
                        'Dayofyear', 'Dayofweek']
 
-    # df_train = df_train[df_train.Year.isin([2009, 2011])]
+    df_train = df_train[df_train.Year.isin([2009, 2011, 2013])]
     labels = df_train.pop('WnvPresent').astype(np.float64)
     features = df_train.drop(columns_to_drop, axis=1).astype(np.float64)
 
@@ -81,7 +83,7 @@ def tune_objective(
             "reg_lambda": trial.suggest_float(
                 'reg_lambda', LAMBDA[0], LAMBDA[1])
         }
-        clf = LGBMClassifier(**params, verbose=-1)
+        clf = LGBMClassifier(**params, is_unbalanced=True, verbose=-1)
     elif MODEL == 'xgb':
         params = {
             'max_depth': trial.suggest_int(
@@ -101,7 +103,8 @@ def tune_objective(
 
     # create CV folds
     cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3)
-
+    # import pudb
+    # pudb.set_trace()
     # perform cross-validation
     cv_results = cross_validate(
         pipeline, features, labels, scoring='roc_auc', cv=cv
@@ -136,7 +139,7 @@ def train_best_model(
     best_score = study.best_value
 
     if MODEL == 'lgbm':
-        clf = LGBMClassifier(**best_params)
+        clf = LGBMClassifier(**best_params, is_unbalanced=True)
     elif MODEL == 'xgb':
         clf = XGBClassifier(**best_params)
 
@@ -155,26 +158,27 @@ def train_best_model(
     mlflow.log_metric("roc_auc_cv", best_score)
 
     # Set a tag that we can use to remind ourselves what this run was for
-    mlflow.set_tag(
-        "Training Info",
-        f"Basic {MODEL} model for WNV prediction"
-    )
+    # mlflow.set_tag(
+    #     "Training Info",
+    #     f"Basic {MODEL} model for WNV prediction"
+    # )
 
-    signature = infer_signature(features,
-                                clf.predict_proba(features)[:, 1])
+    # signature = infer_signature(features,
+    #                             clf.predict_proba(features)[:, 1])
 
-    model_info = mlflow.sklearn.log_model(
-        sk_model=pipeline,
-        artifact_path="wnv",
-        signature=signature,
-        input_example=features,
-        registered_model_name="LGBM-for-WNV",
-    )
+    # model_info = mlflow.sklearn.log_model(
+    #     sk_model=pipeline,
+    #     artifact_path="wnv",
+    #     signature=signature,
+    #     input_example=features,
+    #     registered_model_name="LGBM-for-WNV",
+    # )
 
-    loaded_model = mlflow.sklearn.load_model(model_info.model_uri)
-    logger.info('Model loaded to MLflow')
+    # loaded_model = mlflow.sklearn.load_model(model_info.model_uri)
+    # logger.info('Model loaded to MLflow')
 
-    return loaded_model
+    # return loaded_model
+    return pipeline
 
 
 def train_with_hyperparams_tuning(

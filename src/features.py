@@ -39,7 +39,8 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
 def add_lag_window_to_column_name(
     df: pd.DataFrame,
     lag: int,
-    window: int
+    window: int,
+    agg_func: str
 ):
     """Extends column names of a dataframe by appending number of lagged days
     and size of aggregation window
@@ -48,8 +49,9 @@ def add_lag_window_to_column_name(
         df (pd.DataFrame): dataframe with column names to be updated
         lag (int): number of lagged days
         window (int): window for aggregation function
+        agg_func: aggregating function
     """
-    df.columns = ['_'.join([c, f'mean_l{lag}_w{window}']) for c in df.columns]
+    df.columns = ['_'.join([c, f'{agg_func}_l{lag}_w{window}']) for c in df.columns]
 
 
 def aggregate_columns_with_lag(
@@ -76,7 +78,7 @@ def aggregate_columns_with_lag(
     for lag in lags:
         for window in windows:
             df_one = df.shift(lag).rolling(window).agg(agg_func)
-            add_lag_window_to_column_name(df_one, lag, window)
+            add_lag_window_to_column_name(df_one, lag, window, agg_func)
             df_agg = pd.concat([df_agg, df_one], axis=1).dropna()
     return df_agg
 

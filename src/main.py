@@ -1,12 +1,14 @@
 from loguru import logger
 
+import numpy as np
+
 from src.data import read_raw_data, preprocess_data
 from src.features import get_features
 from src.training import get_training_data, train_with_hyperparams_tuning
 from src.evaluate import evaluate
 
 
-def run_experiment():
+def run_experiment() -> float:
     data = read_raw_data()
     logger.info('Raw data read.')
 
@@ -27,6 +29,14 @@ def run_experiment():
     logger.info('Evaluation finished.')
     logger.info(f'Public score: {scores[0]}, private score: {scores[1]}')
 
+    return scores[1]
+
 
 if __name__ == "__main__":
-    run_experiment()
+
+    scores = []
+    for i in range(1):
+        private_score = run_experiment()
+        scores.append(private_score)
+
+    mean_score = np.mean(scores)

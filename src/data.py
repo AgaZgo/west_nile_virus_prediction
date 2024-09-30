@@ -65,7 +65,8 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
 
     # choice of columns to use in the project follows from insights from EDA
     columns_to_stay = ['Station', 'Date', 'Tmax', 'Tmin', 'Tavg', 'DewPoint',
-                       'WetBulb', 'PrecipTotal']
+                       'WetBulb', 'PrecipTotal', 'AvgSpeed', 'ResultSpeed',
+                       'ResultDir']
     df_weather = df_weather[columns_to_stay]
 
     # 'Tavg' is an average of 'Tmax' and 'Tmin'.
@@ -98,6 +99,23 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
     df_weather.loc[missing_index, 'WetBulb'] = y_pred.round()
 
     df_weather['WetBulb'] = df_weather.WetBulb.astype(np.float64)
+
+    X_train = df_weather[df_weather['AvgSpeed'] != 'M'][
+        ['ResultSpeed', 'ResultDir', 'AvgSpeed']
+        ].astype(np.float64)
+    y_train = X_train.pop('AvgSpeed')
+
+    lr_model = LinearRegression()
+    lr_model.fit(X_train, y_train)
+
+    X_test = df_weather[df_weather['AvgSpeed'] == 'M'][
+        ['ResultSpeed', 'ResultDir']]
+    missing_value_predictions = lr_model.predict(X_test).round(1)
+
+    m_index = df_weather[df_weather['AvgSpeed'] == 'M'].index
+    df_weather.loc[m_index, 'AvgSpeed'] = missing_value_predictions
+
+    df_weather['AvgSpeed'] = df_weather['AvgSpeed'].astype(np.float64)
 
     # Value 'T' in column 'PrecipTotal' means that there was a trace of
     # precipitation detected. The smallest non zero number in this column
@@ -169,7 +187,7 @@ class MonthSpeciesTrapTransformer(BaseEstimator, TransformerMixin):
     """Transformer to drop rows with months, species and traps for which
     wnv presence was detected less than 3 times"""
 
-    def __init__(self, columns=['Species', 'Month', 'Trap']):
+    def __init__(self, columns=['Species', 'Month']):
 
         self.columns = columns
         self.values_with_positive_cases = {
@@ -183,7 +201,7 @@ class MonthSpeciesTrapTransformer(BaseEstimator, TransformerMixin):
             # get column values with more 2 positive cases
             virus_detected_cnt: pd.Series = df.groupby(col)['WnvPresent'].sum()
             self.values_with_positive_cases[col] = virus_detected_cnt[
-                virus_detected_cnt > 2
+                virus_detected_cnt > 0
             ].index.to_list()
 
         return self

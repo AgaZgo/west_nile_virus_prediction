@@ -28,6 +28,7 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 ## TODO:
 
+- [ ] add AvgSpeed
 - [ ] readme
 - [ ] decouple basic eda and advanced eda
  
