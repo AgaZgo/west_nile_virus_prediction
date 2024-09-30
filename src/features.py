@@ -5,7 +5,7 @@ from loguru import logger
 
 import pandas as pd
 
-from src.config import LAG_LIST, WINDOW_LIST
+from src.config import LAG_LIST, WINDOW_LIST, AGG_LIST
 from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
 from src.feature_selector import FeatureSelector
 
@@ -39,7 +39,8 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
 def add_lag_window_to_column_name(
     df: pd.DataFrame,
     lag: int,
-    window: int
+    window: int,
+    agg_f: str
 ):
     """Extends column names of a dataframe by appending number of lagged days
     and size of aggregation window
@@ -49,14 +50,14 @@ def add_lag_window_to_column_name(
         lag (int): number of lagged days
         window (int): window for aggregation function
     """
-    df.columns = ['_'.join([c, f'mean_l{lag}_w{window}']) for c in df.columns]
+    df.columns = ['_'.join([c, f'{agg_f}_l{lag}_w{window}']) for c in df.columns]
 
 
 def aggregate_columns_with_lag(
     df: pd.DataFrame,
     lags: List[int],
     windows: List[int],
-    agg_func: str
+    agg_func: List[str]
 ) -> pd.DataFrame:
     """Performs an aggregation with moving window with lagging for all columns
     in a dataframe. Aggregation is made for each combination of lag and window
@@ -66,7 +67,7 @@ def aggregate_columns_with_lag(
         df (pd.DataFrame): dataframe with columns to aggregate
         lags (List[int]): list of lag sizes to apply
         windows (List[int]): list of window sizes to apply
-        agg_func (str): aggregation function
+        agg_func (str): list of aggregation functions
 
     Returns:
         pd.DataFrame: dataframe of aggregated and lagged columns
@@ -75,9 +76,10 @@ def aggregate_columns_with_lag(
     df_agg = pd.DataFrame(index=df.index)
     for lag in lags:
         for window in windows:
-            df_one = df.shift(lag).rolling(window).agg(agg_func)
-            add_lag_window_to_column_name(df_one, lag, window)
-            df_agg = pd.concat([df_agg, df_one], axis=1).dropna()
+            for agg_f in agg_func:
+                df_one = df.shift(lag).rolling(window).agg(agg_f)
+                add_lag_window_to_column_name(df_one, lag, window, agg_f)
+                df_agg = pd.concat([df_agg, df_one], axis=1).dropna()
     return df_agg
 
 
@@ -109,7 +111,7 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
         data['weather'],
         lags=LAG_LIST,
         windows=WINDOW_LIST,
-        agg_func='mean'
+        agg_func=AGG_LIST
     )
     logger.info('Weather aggregated and lagged.')
 

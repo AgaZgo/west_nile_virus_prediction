@@ -26,12 +26,10 @@ mlflow.set_tracking_uri(uri=MLFLOW_URI)
 def get_training_data(
     df_train: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.Series]:
-    """Performs resampling of training data.
-    Removes redundant columns
+    """Removes redundant columns. Separates features and labels
 
     Args:
         df_train (pd.DataFrame): training data
-        method (str): resampling method
 
     Returns:
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training

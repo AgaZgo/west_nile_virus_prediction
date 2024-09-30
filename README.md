@@ -30,4 +30,10 @@ Moreover, we perform extensive feature engineering of weather data to finds out 
 
 - [ ] readme
 - [ ] decouple basic eda and advanced eda
- 
+
+## Features:
+ - [ ] features of a type "MaxTemLastWeek", for most promising variables 4 months back
+ - [ ] sample weights as 1/log(num_mosquitos+1) when duplicates
+ - [ ] how many multirows by species, date, week, year-to-date, other species with multirows
+ - [x] add number of rows
+ - [ ] make feature selector efficient (to many features) 

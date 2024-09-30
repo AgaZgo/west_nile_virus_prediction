@@ -127,9 +127,9 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         if self.selector == 'xgb':
             classifier = XGBClassifier()
 
-        pipeline = get_pipeline()
+        # pipeline = get_pipeline()
 
-        X_train, y_train = pipeline.fit_resample(X_train, y_train)
+        # X_train, y_train = pipeline.fit_resample(X_train, y_train)
         logger.debug(f'Selecting {num_features} features with RFE...')
 
         selector = RFE(

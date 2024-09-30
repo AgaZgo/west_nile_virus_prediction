@@ -1,8 +1,12 @@
+# preprocessing
+MULTIROWS = True
+
 # feature engineering config
-LAG_LIST = [3, 5, 7, 10, 14, 30]
-WINDOW_LIST = [3, 5]
-NUM_WEATHER_FEATURES = 10   # number of weather features to select (max. 12)
-NUM_AGG_FEATURES = 0   # number of aggregated weather features to select
+LAG_LIST = [1, 8, 15, 30]
+WINDOW_LIST = [7]
+AGG_LIST = ['mean', 'max']
+NUM_WEATHER_FEATURES = 20   # number of weather features to select
+NUM_AGG_FEATURES = 20   # number of aggregated weather features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config

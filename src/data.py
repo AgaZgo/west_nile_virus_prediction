@@ -33,7 +33,7 @@ def build_data_preprocessing_pipeline() -> Pipeline:
     Pipeline:
         - splits date into separate columns with date components
         - removes rows with months, species and traps values for which virus
-        was detected less than 3 times
+        had never been detected
         - removes address data
 
     Returns:
@@ -43,11 +43,13 @@ def build_data_preprocessing_pipeline() -> Pipeline:
     date_transformer = FunctionTransformer(split_date)
     month_species_trap_filter = MonthSpeciesTrapTransformer()
     address_remover = FunctionTransformer(remove_address)
+    multirows_counter = FunctionTransformer(add_num_multirows)
 
     return make_pipeline(
         date_transformer,
         month_species_trap_filter,
         address_remover,
+        multirows_counter,
         verbose=True
     )
 
@@ -65,7 +67,9 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
 
     # choice of columns to use in the project follows from insights from EDA
     columns_to_stay = ['Station', 'Date', 'Tmax', 'Tmin', 'Tavg', 'DewPoint',
-                       'WetBulb', 'PrecipTotal']
+                       'WetBulb', 'PrecipTotal', 'AvgSpeed', 'ResultSpeed',
+                       'ResultDir'
+                       ]
     df_weather = df_weather[columns_to_stay]
 
     # 'Tavg' is an average of 'Tmax' and 'Tmin'.
@@ -99,6 +103,23 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
 
     df_weather['WetBulb'] = df_weather.WetBulb.astype(np.float64)
 
+    # fill in missing values in 'AvgSpeed'
+    X_train = df_weather[df_weather['AvgSpeed'] != 'M'][
+        ['ResultSpeed', 'ResultDir', 'AvgSpeed']
+        ].astype(np.float64)
+    y_train = X_train.pop('AvgSpeed')
+
+    lr_model = LinearRegression()
+    lr_model.fit(X_train, y_train)
+
+    X_test = df_weather[df_weather['AvgSpeed'] == 'M'][
+        ['ResultSpeed', 'ResultDir']]
+    missing_value_predictions = lr_model.predict(X_test).round(1)
+
+    m_index = df_weather[df_weather['AvgSpeed'] == 'M'].index
+    df_weather.loc[m_index, 'AvgSpeed'] = missing_value_predictions
+
+    df_weather['AvgSpeed'] = df_weather['AvgSpeed'].astype(np.float64)
     # Value 'T' in column 'PrecipTotal' means that there was a trace of
     # precipitation detected. The smallest non zero number in this column
     # is 0.01, thus we use value 0.001 to replace 'T'. We will use the same
@@ -204,3 +225,13 @@ def remove_address(df: pd.DataFrame) -> pd.DataFrame:
                        'AddressAccuracy']
 
     return df.drop(columns_to_drop, axis=1)
+
+
+def add_num_multirows(df: pd.DataFrame) -> pd.DataFrame:
+
+    multirows = df.groupby(
+        ['Date', 'Trap', 'Species']
+    ).agg(NumRows=('Latitude', 'count')).reset_index()
+    df = df.merge(multirows, on=['Date', 'Trap', 'Species'], how='left')
+
+    return df
