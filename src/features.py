@@ -1,14 +1,15 @@
 from typing import List, Tuple
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import make_pipeline
 from loguru import logger
 
 import pandas as pd
 
 from src.config import AGG_COLS, LAG_LIST, WINDOW_LIST, AGG_LIST
-from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
-from src.feature_selector import FeatureSelector
+# from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES,
+from src.config import TRAIN_COLUMNS, TEST_COLUMNS, WEATHER_COLUMNS
+# from src.feature_selector import FeatureSelector
 
 
 class SpeciesEncoder(BaseEstimator, TransformerMixin):
@@ -49,7 +50,7 @@ class TrapFeatureExtractor(BaseEstimator, TransformerMixin):
         self.trap_wnv_proba = df.groupby(['Date', 'Trap'])['WnvPresent'].max(
             ).reset_index().groupby(['Trap'])['WnvPresent'].mean()
         return self
-        
+
     def transform(self, df):
         df['trap_max_mos'] = df.Trap.map(
             self.trap_max_mos.to_dict()).fillna(self.trap_max_mos.median())
@@ -96,8 +97,8 @@ def aggregate_columns_with_lag(
     Returns:
         pd.DataFrame: dataframe of aggregated and lagged columns
     """
-    df.set_index('Date', inplace=True)
-    df = df[AGG_COLS]
+    df = df.set_index('Date')
+    df = df[columns]
     df_agg = pd.DataFrame(index=df.index)
     for lag in lags:
         for window in windows:
@@ -123,19 +124,23 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
         Tuple[pd.DataFrame]: Tuple of train and test dataframe
     """
     # add multirows count
-    multirows_counter = FunctionTransformer(add_num_multirows)
+    data['train'] = add_num_multirows(data['train'], split='train')
+    data['test'] = add_num_multirows(data['test'], split='test')
+
     # encode 'Species'
     species_oh_encoder = SpeciesEncoder()
     # extract trap features
     trap_feat_extractor = TrapFeatureExtractor()
 
     feature_pipeline = make_pipeline(
-        multirows_counter,
         species_oh_encoder,
         trap_feat_extractor
     )
     data['train'] = feature_pipeline.fit_transform(data['train'])
     data['test'] = feature_pipeline.transform(data['test'])
+
+    data['train'] = data['train'].merge(data['weather'], on='Date')
+    data['test'] = data['test'].merge(data['weather'], on='Date')
 
     # get aggregated and lagged weather features
     logger.debug('Aggregating weather with lag...')
@@ -148,28 +153,63 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     )
     logger.info('Weather aggregated and lagged.')
 
-    # build feature selector
-    feature_selector = FeatureSelector(
-        data['weather'],
-        df_agg,
-        NUM_WEATHER_FEATURES,
-        NUM_AGG_FEATURES,
-        FEATURE_SELECTOR
-    )
+    data['train'] = data['train'].merge(df_agg, on='Date')
+    data['test'] = data['test'].merge(df_agg, on='Date')
 
-    # select features from train and test data
-    df_train = feature_selector.fit_transform(data['train'])
-    df_test = feature_selector.transform(data['test'])
+    agg_weather_columns = df_agg.columns.to_list()[1:]
 
-    logger.info('Features selection finished.')
+    # # build feature selector
+    # feature_selector = FeatureSelector(
+    #     data['weather'],
+    #     df_agg,
+    #     NUM_WEATHER_FEATURES,
+    #     NUM_AGG_FEATURES,
+    #     FEATURE_SELECTOR
+    # )
+
+    # # select features from train and test data
+    # df_train = feature_selector.fit_transform(data['train'])
+    # df_test = feature_selector.transform(data['test'])
+
+    # logger.info('Features selection finished.')
+
+    df_train = data['train'][
+        TRAIN_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
+    ].copy()
+
+    df_test = data['test'][
+        TEST_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
+    ].copy()
+
     return df_train, df_test
 
 
-def add_num_multirows(df: pd.DataFrame) -> pd.DataFrame:
+def add_num_multirows(
+    df: pd.DataFrame,
+    split: str
+) -> pd.DataFrame:
 
-    multirows = df.groupby(
-        ['Date', 'Trap', 'Species']
-    ).agg(NumRows=('Latitude', 'count')).reset_index()
-    df = df.merge(multirows, on=['Date', 'Trap', 'Species'], how='left')
+    if split == 'train':
+        multirows = df.groupby(
+            ['Date', 'Trap', 'Species']
+        ).agg(
+            NumRows=('Latitude', 'count'),
+            NumMosquitos=('NumMosquitos', 'sum'),
+            WnvPresent=('WnvPresent', 'max')
+        ).reset_index()
+        df = multirows.merge(
+            df[['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Month',
+                'Year', 'Week', 'Dayofyear']].drop_duplicates(),
+            on=['Date', 'Trap', 'Species'], how='left')
+    else:
+        multirows = df.groupby(
+            ['Date', 'Trap', 'Species']
+        ).agg(
+            NumRows=('Latitude', 'count'),
+        ).reset_index()
+
+        df = df.merge(
+            multirows,
+            on=['Date', 'Trap', 'Species'], how='left')
 
     return df

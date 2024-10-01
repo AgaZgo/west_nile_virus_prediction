@@ -1,13 +1,35 @@
 # preprocessing
-MULTIROWS = True
+MONTHS = [5, 6, 7, 8, 9]
+SPECIES = ['CULEX PIPIENS', 'CULEX PIPIENS/RESTUANS',
+           'CULEX RESTUANS'] 
+KEEP_MULTIROWS = False
+USE_MAX_CATCH_DATE = False
 
 # feature engineering config
-AGG_COLS = ['Tmax_1', 'Tmax_2', 'Tavg_1', 'Tavg_2', 'Tmin_1', 'Tmin_2',
-            'PrecipTotal_1', 'PrecipTotal_2', 'DewPoint_1', 'DewPoint_2',
-            'WetBulb_1', 'WetBulb_2', 'AvgSpeed_1', 'AvgSpeed_2']
-LAG_LIST = [1, 8, 15, 29]
+TRAIN_COLUMNS = ['Week', 'Dayofyear', 'Latitude', 'Longitude',
+                 'trap_max_mos', 'trap_wnv_proba', 'NumRows',
+                 # 'lat_bin', 'long_bin',
+                 'Species_CULEX PIPIENS', 'Species_CULEX PIPIENS/RESTUANS',
+                 'Species_CULEX RESTUANS', 'WnvPresent']
+
+TEST_COLUMNS = ['Id'] + TRAIN_COLUMNS[:-1]
+
+WEATHER_COLUMNS = ['Tmax_1', 'Tmin_1', 'Tavg_1', 'DewPoint_1',
+                   'WetBulb_1', 'PrecipTotal_1', 'AvgSpeed_1',
+                   'PrecipTotal_2',
+                   # 'AvgSpeed_2', 'ResultSpeed_2', 'ResultDir_2',
+                   # 'ResultDir_1', 'ResultSpeed_1'
+                   ]
+
+AGG_COLS = ['Tmax_1', 'Tmin_1', 'PrecipTotal_1', 'DewPoint_1',
+            'AvgSpeed_1', 'PrecipTotal_2', 'Tavg_1'
+            # WetBulb_1'
+            ]
+
+LAG_LIST = [1, 8, 15]
 WINDOW_LIST = [7]
-AGG_LIST = ['mean', 'max']
+AGG_LIST = ['max', 'mean']
+
 NUM_WEATHER_FEATURES = 0   # number of weather features to select
 NUM_AGG_FEATURES = 0  # number of aggregated weather features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required

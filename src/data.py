@@ -1,5 +1,5 @@
 from sklearn.linear_model import LinearRegression
-from sklearn.base import BaseEstimator, TransformerMixin
+# from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import Pipeline, make_pipeline
 
@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 
 from src.paths import RAW_DATA_DIR
+from src.config import MONTHS, SPECIES
 
 # disable pandas SettingWithCopyWarnings
 pd.options.mode.chained_assignment = None
@@ -41,12 +42,12 @@ def build_data_preprocessing_pipeline() -> Pipeline:
     """
 
     date_transformer = FunctionTransformer(split_date)
-    month_species_trap_filter = MonthSpeciesTrapTransformer()
+    month_species_filter = FunctionTransformer(filter_months_and_species)
     address_remover = FunctionTransformer(remove_address)
 
     return make_pipeline(
         date_transformer,
-        month_species_trap_filter,
+        month_species_filter,
         address_remover,
         verbose=True
     )
@@ -184,36 +185,42 @@ def split_date(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-class MonthSpeciesTrapTransformer(BaseEstimator, TransformerMixin):
-    """Transformer to drop rows with months, species and traps for which
-    wnv presence was detected less than 3 times"""
+def filter_months_and_species(df):
+    df = df[df.Month.isin(MONTHS)]
+    df = df[df.Species.isin(SPECIES)]
+    return df
 
-    def __init__(self, columns=['Species', 'Month', 'Trap']):
+  
+# class MonthSpeciesTrapTransformer(BaseEstimator, TransformerMixin):
+#     """Transformer to drop rows with months, species and traps for which
+#     wnv presence was detected less than 3 times"""
 
-        self.columns = columns
-        self.values_with_positive_cases = {
-            col: [] for col in columns
-        }
+#     def __init__(self, columns=['Species', 'Month']):
 
-    def fit(self, df: pd.DataFrame):
+#         self.columns = columns
+#         self.values_with_positive_cases = {
+#             col: [] for col in columns
+#         }
 
-        for col in self.columns:
+#     def fit(self, df: pd.DataFrame):
 
-            # get column values with more 2 positive cases
-            virus_detected_cnt: pd.Series = df.groupby(col)['WnvPresent'].sum()
-            self.values_with_positive_cases[col] = virus_detected_cnt[
-                virus_detected_cnt > 2
-            ].index.to_list()
+#         for col in self.columns:
 
-        return self
+#             # get column values with more 2 positive cases
+#             virus_detected_cnt: pd.Series = df.groupby(col)['WnvPresent'].sum()
+#             self.values_with_positive_cases[col] = virus_detected_cnt[
+#                 virus_detected_cnt > 2
+#             ].index.to_list()
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+#         return self
 
-        for col in self.columns:
-            # leave df rows with values in self.values_with_positive_cases
-            df = df[df[col].isin(self.values_with_positive_cases[col])]
+#     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
 
-        return df
+#         for col in self.columns:
+#             # leave df rows with values in self.values_with_positive_cases
+#             df = df[df[col].isin(self.values_with_positive_cases[col])]
+
+#         return df
 
 
 def remove_address(df: pd.DataFrame) -> pd.DataFrame:
@@ -223,4 +230,3 @@ def remove_address(df: pd.DataFrame) -> pd.DataFrame:
                        'AddressAccuracy']
 
     return df.drop(columns_to_drop, axis=1)
-
