@@ -1,5 +1,5 @@
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import RFE
+from sklearn.feature_selection import SequentialFeatureSelector, RFE
 from xgboost import XGBClassifier
 
 from datetime import timedelta
@@ -7,8 +7,6 @@ from loguru import logger
 
 import pandas as pd
 import numpy as np
-
-from src.pipeline import get_pipeline
 
 
 class FeatureSelector(BaseEstimator, TransformerMixin):
@@ -127,14 +125,12 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         if self.selector == 'xgb':
             classifier = XGBClassifier()
 
-        # pipeline = get_pipeline()
-
-        # X_train, y_train = pipeline.fit_resample(X_train, y_train)
         logger.debug(f'Selecting {num_features} features with RFE...')
 
         selector = RFE(
             classifier,
-            n_features_to_select=num_features
+            n_features_to_select=num_features,
+            # direction='forward'
         ).fit(X_train, y_train)
 
         support = selector.support_

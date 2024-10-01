@@ -1,11 +1,12 @@
 from typing import List, Tuple
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
+from sklearn.pipeline import make_pipeline
 from loguru import logger
 
 import pandas as pd
 
-from src.config import LAG_LIST, WINDOW_LIST, AGG_LIST
+from src.config import AGG_COLS, LAG_LIST, WINDOW_LIST, AGG_LIST
 from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
 from src.feature_selector import FeatureSelector
 
@@ -36,6 +37,27 @@ class SpeciesEncoder(BaseEstimator, TransformerMixin):
         )
 
 
+class TrapFeatureExtractor(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        self.trap_max_mos = None
+        self.trap_wnv_proba = None
+
+    def fit(self, df):
+        self.trap_max_mos = df.groupby(['Date', 'Trap'])['NumMosquitos'].sum(
+            ).reset_index().groupby(['Trap'])['NumMosquitos'].max()
+        self.trap_wnv_proba = df.groupby(['Date', 'Trap'])['WnvPresent'].max(
+            ).reset_index().groupby(['Trap'])['WnvPresent'].mean()
+        return self
+        
+    def transform(self, df):
+        df['trap_max_mos'] = df.Trap.map(
+            self.trap_max_mos.to_dict()).fillna(self.trap_max_mos.median())
+        df['trap_wnv_proba'] = df.Trap.map(
+            self.trap_wnv_proba.to_dict()).fillna(self.trap_wnv_proba.median())
+        return df
+
+
 def add_lag_window_to_column_name(
     df: pd.DataFrame,
     lag: int,
@@ -50,11 +72,13 @@ def add_lag_window_to_column_name(
         lag (int): number of lagged days
         window (int): window for aggregation function
     """
-    df.columns = ['_'.join([c, f'{agg_f}_l{lag}_w{window}']) for c in df.columns]
+    df.columns = ['_'.join([c, f'{agg_f}_l{lag}_w{window}'])
+                  for c in df.columns]
 
 
 def aggregate_columns_with_lag(
     df: pd.DataFrame,
+    columns: List[str],
     lags: List[int],
     windows: List[int],
     agg_func: List[str]
@@ -73,6 +97,7 @@ def aggregate_columns_with_lag(
         pd.DataFrame: dataframe of aggregated and lagged columns
     """
     df.set_index('Date', inplace=True)
+    df = df[AGG_COLS]
     df_agg = pd.DataFrame(index=df.index)
     for lag in lags:
         for window in windows:
@@ -97,18 +122,26 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     Returns:
         Tuple[pd.DataFrame]: Tuple of train and test dataframe
     """
-
+    # add multirows count
+    multirows_counter = FunctionTransformer(add_num_multirows)
     # encode 'Species'
-    logger.debug('Encoding species...')
     species_oh_encoder = SpeciesEncoder()
-    data['train'] = species_oh_encoder.fit_transform(data['train'])
-    data['test'] = species_oh_encoder.transform(data['test'])
-    logger.info('Species encoded')
+    # extract trap features
+    trap_feat_extractor = TrapFeatureExtractor()
+
+    feature_pipeline = make_pipeline(
+        multirows_counter,
+        species_oh_encoder,
+        trap_feat_extractor
+    )
+    data['train'] = feature_pipeline.fit_transform(data['train'])
+    data['test'] = feature_pipeline.transform(data['test'])
 
     # get aggregated and lagged weather features
     logger.debug('Aggregating weather with lag...')
     df_agg = aggregate_columns_with_lag(
         data['weather'],
+        columns=AGG_COLS,
         lags=LAG_LIST,
         windows=WINDOW_LIST,
         agg_func=AGG_LIST
@@ -130,3 +163,13 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
 
     logger.info('Features selection finished.')
     return df_train, df_test
+
+
+def add_num_multirows(df: pd.DataFrame) -> pd.DataFrame:
+
+    multirows = df.groupby(
+        ['Date', 'Trap', 'Species']
+    ).agg(NumRows=('Latitude', 'count')).reset_index()
+    df = df.merge(multirows, on=['Date', 'Trap', 'Species'], how='left')
+
+    return df

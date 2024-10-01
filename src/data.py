@@ -43,13 +43,11 @@ def build_data_preprocessing_pipeline() -> Pipeline:
     date_transformer = FunctionTransformer(split_date)
     month_species_trap_filter = MonthSpeciesTrapTransformer()
     address_remover = FunctionTransformer(remove_address)
-    multirows_counter = FunctionTransformer(add_num_multirows)
 
     return make_pipeline(
         date_transformer,
         month_species_trap_filter,
         address_remover,
-        multirows_counter,
         verbose=True
     )
 
@@ -68,8 +66,8 @@ def clean_weather(df_weather: pd.DataFrame) -> pd.DataFrame:
     # choice of columns to use in the project follows from insights from EDA
     columns_to_stay = ['Station', 'Date', 'Tmax', 'Tmin', 'Tavg', 'DewPoint',
                        'WetBulb', 'PrecipTotal', 'AvgSpeed', 'ResultSpeed',
-                       'ResultDir'
-                       ]
+                       'ResultDir']
+
     df_weather = df_weather[columns_to_stay]
 
     # 'Tavg' is an average of 'Tmax' and 'Tmin'.
@@ -226,12 +224,3 @@ def remove_address(df: pd.DataFrame) -> pd.DataFrame:
 
     return df.drop(columns_to_drop, axis=1)
 
-
-def add_num_multirows(df: pd.DataFrame) -> pd.DataFrame:
-
-    multirows = df.groupby(
-        ['Date', 'Trap', 'Species']
-    ).agg(NumRows=('Latitude', 'count')).reset_index()
-    df = df.merge(multirows, on=['Date', 'Trap', 'Species'], how='left')
-
-    return df

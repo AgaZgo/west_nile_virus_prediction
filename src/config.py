@@ -2,11 +2,14 @@
 MULTIROWS = True
 
 # feature engineering config
-LAG_LIST = [1, 8, 15, 30]
+AGG_COLS = ['Tmax_1', 'Tmax_2', 'Tavg_1', 'Tavg_2', 'Tmin_1', 'Tmin_2',
+            'PrecipTotal_1', 'PrecipTotal_2', 'DewPoint_1', 'DewPoint_2',
+            'WetBulb_1', 'WetBulb_2', 'AvgSpeed_1', 'AvgSpeed_2']
+LAG_LIST = [1, 8, 15, 29]
 WINDOW_LIST = [7]
 AGG_LIST = ['mean', 'max']
-NUM_WEATHER_FEATURES = 20   # number of weather features to select
-NUM_AGG_FEATURES = 20   # number of aggregated weather features to select
+NUM_WEATHER_FEATURES = 0   # number of weather features to select
+NUM_AGG_FEATURES = 0  # number of aggregated weather features to select
 FEATURE_SELECTOR = 'xgb'  # no feature scaling required
 
 # training config
