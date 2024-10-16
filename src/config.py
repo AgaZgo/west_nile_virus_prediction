@@ -4,8 +4,8 @@ SPECIES = ['CULEX PIPIENS', 'CULEX PIPIENS/RESTUANS',
            'CULEX RESTUANS']
 
 # feature engineering config
-TRAIN_COLUMNS = ['Week', 'Dayofyear', 'Latitude', 'Longitude',
-                 'trap_max_mos', 'trap_wnv_proba', #'NumRows',
+TRAIN_COLUMNS = ['Week', 'Dayofyear', 'Year', 'Month', 'Latitude', 'Longitude',
+                 'trap_max_mos', 'trap_wnv_proba', 'NumRows',
                  'Species_CULEX PIPIENS', 'Species_CULEX PIPIENS/RESTUANS',
                  'Species_CULEX RESTUANS', 'WnvPresent']
 
@@ -14,6 +14,7 @@ TEST_COLUMNS = ['Id'] + TRAIN_COLUMNS[:-1]
 WEATHER_COLUMNS = ['Tmax_1', 'Tmin_1', 'Tavg_1', 'DewPoint_1',
                    'WetBulb_1', 'PrecipTotal_1', 'AvgSpeed_1',
                    'PrecipTotal_2']
+
 
 AGG_COLS = ['Tmax_1', 'Tmin_1', 'PrecipTotal_1', 'DewPoint_1',
             'AvgSpeed_1', 'PrecipTotal_2', 'Tavg_1']

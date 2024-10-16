@@ -30,19 +30,22 @@ For each model we report mean score of 5 runs.
 
 
 ## Modelling
-MAchine learning models used and compared:
+Machine learning models used and compared:
 - logistic regression
 - LGBM classifier
                              
 We use Optuna for hyperparameter tuning.
 
 ## Results
- | model |feature engineering|  private score |
+ | model |feature engineering|  AUC_ROC test score (5-run mean) |
  |--- | ---- | --- | 
- |logistic regression|weather| 0.73 |
- | logistic regression | weather + trap fearures| | ||
- |logistic regression | weather + trap features + number of rows||||
- |logistic regression | weather + trap features + lagged weather||||
-|LightGBM | weather + trap features + number of rows + lagged weather||||
+ |logistic regression|basic| 0.723 |
+ | logistic regression | basic + trap features| 0.719|
+ |logistic regression | basic + trap features + multirows|0.753|
+ |logistic regression | basic + trap features + multirows + weather|0.758|
+  |logistic regression | basic + trap features + weather|0.728|
+ |logistic regression | basic + trap features + weather + 5 lagged weather|0.738|
+  |logistic regression | basic + trap features + multirows + weather + 5 lagged weather|0.763|
+|LightGBM | basic + trap features + multirows + weather + 5 lagged weather|0.773|
 
 ## How to run a project

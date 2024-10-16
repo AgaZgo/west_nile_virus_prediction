@@ -27,7 +27,15 @@ def run_experiment():
     logger.info('Evaluation finished.')
     logger.info(f'Public score: {scores[0]}, private score: {scores[1]}')
 
+    return scores[1]
+
 
 if __name__ == "__main__":
 
-    run_experiment()
+    scores = []
+
+    for i in range(2):
+        score = run_experiment()
+        scores.append(float(score))
+
+    print(round(sum(scores)/len(scores), 3))
