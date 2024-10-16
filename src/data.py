@@ -33,8 +33,7 @@ def build_data_preprocessing_pipeline() -> Pipeline:
     """Builds transformation pipeline for virus presence data.
     Pipeline:
         - splits date into separate columns with date components
-        - removes rows with months, species and traps values for which virus
-        had never been detected
+        - filters months and species, leaving values specified in config
         - removes address data
 
     Returns:

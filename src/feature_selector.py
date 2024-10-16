@@ -1,5 +1,8 @@
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import SequentialFeatureSelector, RFE
+from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 from xgboost import XGBClassifier
 
 from datetime import timedelta
@@ -20,7 +23,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         num_agg_features: int,
         selector: str
     ):
-        self.weather_df = weather_df
+        self.weather_df = weather_df.set_index('Date')
         self.agg_weather_df = agg_weather_df
         self.num_weather_features = num_weather_features
         self.num_agg_features = num_agg_features
@@ -39,7 +42,6 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
             df (pd.DataFrame): dataframe with 'Date' and 'WnvPresent' columns
 
         """
-
         # select non-aggregated and non-lagged weather features
         if self.num_weather_features > 0:
             logger.debug(
@@ -70,18 +72,19 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         """Returns input dataframe merged (on 'Date' column) with selected
         weather features
         """
-        df = self.add_max_catch_date(df)
+        # df = self.add_max_catch_date(df)
 
         data_full = pd.merge(
             pd.merge(
                 df,
                 self.weather_df.reset_index(),
-                left_on='MaxCatchDate',
-                right_on='Date'
+                on='Date'
+                # left_on='MaxCatchDate',
+                # right_on='Date'
             ),
             self.agg_weather_df.reset_index(),
-            left_on='MaxCatchDate',
-            right_on='Date'
+            # left_on='MaxCatchDate',
+            on='Date'
         )
         df = data_full[
             [
@@ -90,7 +93,7 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
                 *self.selected_agg_cols
             ]
         ]
-        df.drop('MaxCatchDate', axis=1, inplace=True)
+        # df.drop('MaxCatchDate', axis=1, inplace=True)
         return df
 
     def select_weather_features(
@@ -110,28 +113,40 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         Returns:
             list: List of selected weather features
         """
+ 
+        # df = self.add_max_catch_date(df)
+        # df = pd.merge(
+        #     df,
+        #     weather_df,
+        #     left_on='MaxCatchDate',
+        #     right_on='Date'
+        # )
+        df = pd.merge(df, weather_df, on='Date')
 
-        df = self.add_max_catch_date(df)
-        df = pd.merge(
-            df,
-            weather_df.reset_index(),
-            left_on='MaxCatchDate',
-            right_on='Date'
-        )
-        df.drop('MaxCatchDate', axis=1, inplace=True)
+        # df.drop(['MaxCatchDate'], axis=1, inplace=True)
+
         X_train = df[weather_df.columns]
         y_train = df['WnvPresent']
 
         if self.selector == 'xgb':
             classifier = XGBClassifier()
+        elif self.selector == 'lr':
+            classifier = make_pipeline(
+                StandardScaler(), LogisticRegression())
 
-        logger.debug(f'Selecting {num_features} features with RFE...')
+        if num_features < X_train.shape[1]/2:
+            direction = 'forward'
+        else:
+            direction = 'backward'
+            num_features = min([num_features, X_train.shape[1]-1])
 
-        selector = RFE(
+        logger.debug(
+            f'Selecting {num_features} features with SFS {direction}...')
+        selector = SequentialFeatureSelector(
             classifier,
             n_features_to_select=num_features,
-            # direction='forward'
-        ).fit(X_train, y_train)
+            direction=direction
+        ).fit(X_train.astype(np.float64), y_train.astype(np.float64))
 
         support = selector.support_
         selected_features = weather_df.columns[support].to_list()

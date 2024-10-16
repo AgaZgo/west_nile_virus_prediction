@@ -7,9 +7,9 @@ from loguru import logger
 import pandas as pd
 
 from src.config import AGG_COLS, LAG_LIST, WINDOW_LIST, AGG_LIST
-# from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES,
+from src.config import NUM_AGG_FEATURES, NUM_WEATHER_FEATURES, FEATURE_SELECTOR
 from src.config import TRAIN_COLUMNS, TEST_COLUMNS, WEATHER_COLUMNS
-# from src.feature_selector import FeatureSelector
+from src.feature_selector import FeatureSelector
 
 
 class SpeciesEncoder(BaseEstimator, TransformerMixin):
@@ -111,7 +111,9 @@ def aggregate_columns_with_lag(
 
 def get_features(data: dict) -> Tuple[pd.DataFrame]:
     """Performes feature engineering:
+        - adds number of rows for ('Date', 'Trap', 'Species') tuple
         - one-hot encoding of species column
+        - generates trap specific features
         - generates aggregated weather features with lag
         - selects subset of most promising features for modeling
 
@@ -139,13 +141,13 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     data['train'] = feature_pipeline.fit_transform(data['train'])
     data['test'] = feature_pipeline.transform(data['test'])
 
-    data['train'] = data['train'].merge(data['weather'], on='Date')
-    data['test'] = data['test'].merge(data['weather'], on='Date')
-
+    # data['train'] = data['train'].merge(data['weather'], on='Date')
+    # data['test'] = data['test'].merge(data['weather'], on='Date')
+        
     # get aggregated and lagged weather features
     logger.debug('Aggregating weather with lag...')
     df_agg = aggregate_columns_with_lag(
-        data['weather'],
+        data['weather'][['Date']+AGG_COLS],
         columns=AGG_COLS,
         lags=LAG_LIST,
         windows=WINDOW_LIST,
@@ -153,33 +155,35 @@ def get_features(data: dict) -> Tuple[pd.DataFrame]:
     )
     logger.info('Weather aggregated and lagged.')
 
-    data['train'] = data['train'].merge(df_agg, on='Date')
-    data['test'] = data['test'].merge(df_agg, on='Date')
+    # data['train'] = data['train'].merge(df_agg, on='Date')
+    # data['test'] = data['test'].merge(df_agg, on='Date')
 
-    agg_weather_columns = df_agg.columns.to_list()[1:]
+    # agg_weather_columns = df_agg.columns.to_list()[1:]
 
-    # # build feature selector
-    # feature_selector = FeatureSelector(
-    #     data['weather'],
-    #     df_agg,
-    #     NUM_WEATHER_FEATURES,
-    #     NUM_AGG_FEATURES,
-    #     FEATURE_SELECTOR
-    # )
+    # build feature selector
+    feature_selector = FeatureSelector(
+        data['weather'][['Date']+WEATHER_COLUMNS],
+        df_agg,
+        NUM_WEATHER_FEATURES,
+        NUM_AGG_FEATURES,
+        FEATURE_SELECTOR
+    )
 
-    # # select features from train and test data
-    # df_train = feature_selector.fit_transform(data['train'])
-    # df_test = feature_selector.transform(data['test'])
+    # select features from train and test data
+    df_train = feature_selector.fit_transform(
+        data['train'][['Date']+TRAIN_COLUMNS])
+    df_test = feature_selector.transform(
+        data['test'][['Date'] + TEST_COLUMNS])
 
-    # logger.info('Features selection finished.')
+    logger.info('Features selection finished.')
 
-    df_train = data['train'][
-        TRAIN_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
-    ].copy()
+    # df_train = data['train'][
+    #     TRAIN_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
+    # ].copy()
 
-    df_test = data['test'][
-        TEST_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
-    ].copy()
+    # df_test = data['test'][
+    #     TEST_COLUMNS + WEATHER_COLUMNS + agg_weather_columns
+    # ].copy()
 
     return df_train, df_test
 
@@ -199,7 +203,7 @@ def add_num_multirows(
         ).reset_index()
         df = multirows.merge(
             df[['Date', 'Species', 'Trap', 'Latitude', 'Longitude', 'Month',
-                'Year', 'Week', 'Dayofyear']].drop_duplicates(),
+                'Year', 'Week', 'Dayofyear', 'Dayofweek']].drop_duplicates(),
             on=['Date', 'Trap', 'Species'], how='left')
     else:
         multirows = df.groupby(

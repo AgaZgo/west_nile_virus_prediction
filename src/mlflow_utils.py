@@ -4,12 +4,13 @@ import mlflow
 
 from src.config import (
     LAG_LIST, WINDOW_LIST, NUM_WEATHER_FEATURES, NUM_AGG_FEATURES,
-    FEATURE_SELECTOR, MODEL, N_TRIALS
+    FEATURE_SELECTOR, MODEL, N_TRIALS, TRAIN_COLUMNS, WEATHER_COLUMNS,
+    AGG_COLS, MONTHS
 )
 
 
 def generate_run_name():
-    return datetime.now().strftime("_%y%m%d_%H%M%S")
+    return MODEL + datetime.now().strftime("_%y%m%d_%H%M%S")
 
 
 def log_config_to_mlflow():
@@ -20,7 +21,11 @@ def log_config_to_mlflow():
         'cfg_num_agg_features': NUM_AGG_FEATURES,
         'cfg_feature_selector': FEATURE_SELECTOR,
         'cfg_model': MODEL,
-        'cfg_n_trails': N_TRIALS
+        'cfg_n_trails': N_TRIALS,
+        'cfg_train_columns': TRAIN_COLUMNS,
+        'cfg_weather_columns': WEATHER_COLUMNS,
+        'cfg_agg_cols': AGG_COLS,
+        'cfg_months': MONTHS
     }
 
     mlflow.log_params(config_params)

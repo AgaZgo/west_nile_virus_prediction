@@ -1,7 +1,8 @@
 from typing import Tuple
 from loguru import logger
-from xgboost import XGBClassifier
+# from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import RepeatedStratifiedKFold
 from mlflow.models import infer_signature
@@ -26,7 +27,7 @@ mlflow.set_tracking_uri(uri=MLFLOW_URI)
 def get_training_data(
     df_train: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.Series]:
-    """Removes redundant columns. Separates features and labels
+    """Decouples features and labels
 
     Args:
         df_train (pd.DataFrame): training data
@@ -35,12 +36,14 @@ def get_training_data(
         Tuple[pd.DataFrame, pd.Series]: Features and labels ready for training
                                         a model
     """
-    columns_to_drop = ['Date', 'Month', 'Trap', 'NumMosquitos', 'Year',
-                       'Dayofyear', 'Dayofweek']
-
+    columns_to_drop = ['Date'] #, 'Month', 'Trap', 'NumMosquitos', 'Year',
+                       #'Dayofyear', 'Dayofweek']
+    # breakpoint()
     # df_train = df_train[df_train.Year.isin([2009, 2011])]
     labels = df_train.pop('WnvPresent').astype(np.float64)
     features = df_train.drop(columns_to_drop, axis=1).astype(np.float64)
+    
+    # features = df_train.astype(np.float64)
 
     logger.debug(f"Training with features {features.columns.to_list()}")
     return features, labels
@@ -80,20 +83,11 @@ def tune_objective(
                 'reg_lambda', LAMBDA[0], LAMBDA[1])
         }
         clf = LGBMClassifier(**params, verbose=-1)
-    elif MODEL == 'xgb':
+    elif MODEL == 'lr':
         params = {
-            'max_depth': trial.suggest_int(
-                'max_depth', MAX_DEPTH[0], MAX_DEPTH[1]),
-            "min_child_weight": trial.suggest_categorical(
-                'min_child_weight', MIN_CHILD_WEIGHT),
-            "subsample": trial.suggest_float(
-                'subsample', SUBSAMPLE[0], SUBSAMPLE[1]),
-            "eta": trial.suggest_float(
-                'eta', LEARNING_RATE[0], LEARNING_RATE[1], log=True),
-            "lambda": trial.suggest_float(
-                'lambda', LAMBDA[0], LAMBDA[1])
+            'C': trial.suggest_float('C', 0.1, 10, log=True)
         }
-        clf = XGBClassifier(**params)
+        clf = LogisticRegression(**params)
 
     pipeline = get_pipeline(clf=clf)
 
@@ -135,8 +129,8 @@ def train_best_model(
 
     if MODEL == 'lgbm':
         clf = LGBMClassifier(**best_params)
-    elif MODEL == 'xgb':
-        clf = XGBClassifier(**best_params)
+    elif MODEL == 'lr':
+        clf = LogisticRegression(**best_params)
 
     pipeline = get_pipeline(clf=clf)
 
@@ -166,7 +160,7 @@ def train_best_model(
         artifact_path="wnv",
         signature=signature,
         input_example=features,
-        registered_model_name="LGBM-for-WNV",
+        registered_model_name=f"{MODEL}-for-WNV",
     )
 
     loaded_model = mlflow.sklearn.load_model(model_info.model_uri)
