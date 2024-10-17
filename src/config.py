@@ -1,10 +1,10 @@
 # preprocessing
-MONTHS = [5, 6, 7, 8, 9]
+MONTHS = [6, 7, 8, 9]
 SPECIES = ['CULEX PIPIENS', 'CULEX PIPIENS/RESTUANS',
            'CULEX RESTUANS']
 
 # feature engineering config
-TRAIN_COLUMNS = ['Week', 'Dayofyear', 'Year', 'Month', 'Latitude', 'Longitude',
+TRAIN_COLUMNS = ['Week', 'Dayofyear', 'Year', 'Latitude', 'Longitude',
                  'trap_max_mos', 'trap_wnv_proba', 'NumRows',
                  'Species_CULEX PIPIENS', 'Species_CULEX PIPIENS/RESTUANS',
                  'Species_CULEX RESTUANS', 'WnvPresent']
@@ -28,7 +28,7 @@ NUM_AGG_FEATURES = 5  # number of aggregated weather features to select
 FEATURE_SELECTOR = 'lr'  # no feature scaling required
 
 # training config
-MODEL = 'lgbm'
+MODEL = 'lr'
 N_TRIALS = 20
 
 # model hyperparameters for fine-tuning
